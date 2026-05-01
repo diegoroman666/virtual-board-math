@@ -46,12 +46,47 @@ const SECTIONS = {
     quimica: {
         label: 'Química',
         contexto: 'química con foco en cálculo: estequiometría, balanceo de ecuaciones químicas (método algebraico, ion electrón), mol y masa molar, número de Avogadro, concentraciones (molaridad, molalidad, normalidad, % m/m, % m/v, ppm), gases ideales (PV=nRT), pH y pOH, equilibrio químico (Kc, Kp), termoquímica (entalpía, ley de Hess).'
+    },
+    mecanica: {
+        label: 'Mecánica Clásica',
+        contexto: 'mecánica clásica avanzada: leyes de Newton, mecánica lagrangiana (ecuaciones de Euler-Lagrange L=T-V), mecánica hamiltoniana (H=T+V, ecuaciones canónicas), principio de mínima acción, dinámica de cuerpos rígidos, momento de inercia, oscilaciones armónicas, péndulo simple y físico, gravitación universal de Newton, problema de los dos cuerpos, órbitas keplerianas, mecánica de fluidos básica.'
+    },
+    fisicaCuantica: {
+        label: 'Física Cuántica',
+        contexto: 'física cuántica conceptual y de fenómenos: efecto fotoeléctrico (Einstein, E=hf-W), radiación de cuerpo negro (Planck, E=hf), modelo atómico de Bohr (energías E_n=-13.6/n^2 eV), dualidad onda-partícula (de Broglie λ=h/p), experimento de la doble rendija, efecto Compton, cuantización de la energía, niveles atómicos, transiciones electrónicas, emisión y absorción de fotones, láseres, superconductividad, entrelazamiento cuántico.'
+    },
+    mecanicaCuantica: {
+        label: 'Mecánica Cuántica',
+        contexto: 'mecánica cuántica formal: ecuación de Schrödinger dependiente e independiente del tiempo, función de onda Ψ y su interpretación probabilística, principio de incertidumbre de Heisenberg ΔxΔp≥ℏ/2, postulados de la mecánica cuántica, operadores hermíticos, valor esperado, pozo de potencial infinito, oscilador armónico cuántico, átomo de hidrógeno, números cuánticos (n, l, ml, ms), espín, principio de exclusión de Pauli, momento angular, notación bra-ket de Dirac ⟨ψ|φ⟩, conmutadores [A,B].'
+    },
+    computacionCuantica: {
+        label: 'Computación Cuántica',
+        contexto: 'computación cuántica: qubits y estados |0⟩, |1⟩, superposición α|0⟩+β|1⟩ con |α|²+|β|²=1, entrelazamiento, esfera de Bloch, compuertas cuánticas (Hadamard H, Pauli-X/Y/Z, CNOT, Toffoli, fase S/T), circuitos cuánticos, algoritmo de Deutsch-Jozsa, algoritmo de Grover (búsqueda en O(√N)), algoritmo de Shor (factorización), teleportación cuántica, codificación superdensa, corrección de errores cuánticos, productos tensoriales ⊗, matrices unitarias.'
+    },
+    astrofisica: {
+        label: 'Astrofísica',
+        contexto: 'astrofísica con cálculo: leyes de Kepler, gravitación de Newton F=GMm/r², mecánica orbital, velocidad de escape v=√(2GM/r), energía orbital, ley de Stefan-Boltzmann L=4πR²σT⁴, ley de Wien λmax·T=b, magnitud aparente y absoluta, módulo de distancia, paralaje, distancia en años luz y parsecs, evolución estelar, secuencia principal, diagrama HR, agujeros negros (radio de Schwarzschild Rs=2GM/c²), corrimiento al rojo z, ley de Hubble v=H₀d, expansión del universo.'
+    },
+    astronomia: {
+        label: 'Astronomía',
+        contexto: 'astronomía observacional con matemática: coordenadas celestes (ecuatoriales: ascensión recta α, declinación δ; horizontales: altura h, azimut A), tiempo sideral, leyes de Kepler (T²=a³ en unidades AU/años), periodo orbital, distancias planetarias en UA, magnitudes estelares m-M=5log(d/10), calendarios juliano y gregoriano, eclipses solares y lunares, fases lunares, mareas, constelaciones, sistemas planetarios.'
+    },
+    geologia: {
+        label: 'Geología',
+        contexto: 'geología cuantitativa: tectónica de placas, sismología (escala Richter, magnitud de momento Mw=⅔log₁₀(M₀)-10.7), velocidad de ondas P y S, datación radiométrica con vida media (N=N₀·e^(-λt), donde t½=ln2/λ), edad de rocas con isótopos (U-Pb, K-Ar, C-14), mineralogía, escala de Mohs, geocronología, columna estratigráfica, isostasia, gradiente geotérmico.'
     }
 };
+
+const SECTION_KEYS = Object.keys(SECTIONS);
 
 const RESPONSE_SCHEMA = {
     type: "OBJECT",
     properties: {
+        seccionDetectada: {
+            type: "STRING",
+            enum: SECTION_KEYS,
+            description: "La sección a la que MEJOR pertenece el ejercicio mostrado en la imagen."
+        },
         ecuacionTranscrita: { type: "STRING" },
         pasos: {
             type: "ARRAY",
@@ -68,25 +103,52 @@ const RESPONSE_SCHEMA = {
     }
 };
 
-function buildPrompt(seccion) {
+function buildSectionsCatalog() {
+    return SECTION_KEYS.map(k => `- ${k}: ${SECTIONS[k].label}`).join('\n');
+}
+
+function buildPrompt(seccionSugerida) {
+    const sugerencia = seccionSugerida
+        ? `El usuario eligió manualmente la sección "${seccionSugerida.label}", úsala como pista pero CONFIRMA o CORRIGE según el ejercicio real.`
+        : `El usuario no seleccionó sección; clasifícalo tú.`;
+
     return `
-Eres un excelente, didáctico y muy simpático "profe de mate" de un colegio en Chile, especializado en la siguiente sección: **${seccion.label.toUpperCase()}**.
+Eres un excelente, didáctico y muy simpático "profe de mate" de un colegio en Chile. Resuelves ejercicios de matemática, física, química, computación cuántica, astrofísica, geología y áreas relacionadas.
 
-CONTEXTO DE LA SECCIÓN (usa estos conocimientos como referencia principal):
-${seccion.contexto}
+PASO 0 — CLASIFICACIÓN AUTOMÁTICA:
+Antes de resolver, identifica a CUÁL de estas secciones pertenece el ejercicio mostrado en la imagen y devuelve su clave en el campo "seccionDetectada":
 
-Analiza la imagen adjunta que contiene un ejercicio escrito a mano en una pizarra.
+${buildSectionsCatalog()}
 
-Tareas:
+${sugerencia}
+
+Reglas para clasificar:
+- "fisica" para problemas de mecánica básica (cinemática, Newton, energía, ondas mecánicas, electromagnetismo aplicado).
+- "mecanica" SOLO si involucra Lagrange, Hamilton, principio de mínima acción, mecánica de cuerpos rígidos avanzada.
+- "fisicaCuantica" para fenómenos cuánticos conceptuales (efecto fotoeléctrico, Bohr, de Broglie, doble rendija).
+- "mecanicaCuantica" para formalismo (Schrödinger, función de onda, operadores, bra-ket, Heisenberg).
+- "computacionCuantica" si hay qubits, |0⟩, |1⟩, compuertas cuánticas, circuitos.
+- "matricial" si hay matrices, determinantes, vectores, sistemas con matrices.
+- "calculoDif" si hay derivadas, límites, máximos/mínimos.
+- "calculoInt" si hay integrales (∫).
+- "ecDif" si hay y', y'', dy/dx con ecuación diferencial.
+- "astrofisica" para estrellas, agujeros negros, leyes de Hubble, Stefan-Boltzmann.
+- "astronomia" para coordenadas celestes, periodos orbitales, magnitudes estelares.
+- "geologia" para datación radiométrica, sismología, tectónica.
+- "quimica" si hay fórmulas químicas, balanceo, mol, pH.
+
+PASO 1 — RESOLUCIÓN:
+Una vez clasificado, resuelve el ejercicio así:
+
 1. Transcribe el ejercicio inicial usando CÓDIGO LATEX PURO (sin signos de dólar). Si es física o química, transcribe el enunciado y ordena los datos.
-2. Resuelve el ejercicio PASO A PASO. ¡MUY IMPORTANTE!: NO te saltes el procedimiento de los cálculos. Si hay una división larga, multiplicación, factorización, integración por partes, o cualquier algoritmo, DEBES mostrar el desarrollo completo. No des resultados mágicos: muestra cada manipulación.
-3. Por cada paso entrega el cálculo matemático explícito en CÓDIGO LATEX PURO. Para matrices usa \\begin{pmatrix}...\\end{pmatrix}. Para integrales \\int. Para sumas \\sum. Para derivadas \\frac{d}{dx} o notación de Leibniz. Para vectores \\vec{v}.
-4. Por cada paso identifica el NOMBRE FORMAL Y LITERAL de la propiedad, regla, teorema o método utilizado (ej: "Regla de la cadena", "Teorema fundamental del cálculo", "Eliminación de Gauss-Jordan", "Segunda Ley de Newton", "Identidad pitagórica", "Fórmula general de la cuadrática"). Esto es CRUCIAL para refrescar la memoria formal del alumno.
-5. Por cada paso entrega una explicación EXACTAMENTE como lo explicaría un profe chileno en la sala. Tono amigable, cercano y pedagógico. Puedes usar expresiones moderadas como "ya chiquillos, fíjense bien acá", "pasamos al otro lado con la operación contraria", "ojo con la regla de los signos", "simplificamos al tiro", etc.
-6. Si la sección es Física o Química, indica las UNIDADES en cada paso y verifica el análisis dimensional al final.
+2. Resuelve PASO A PASO. ¡MUY IMPORTANTE!: NO te saltes el procedimiento. Si hay una división larga, multiplicación, factorización, integración por partes, o cualquier algoritmo, DEBES mostrar el desarrollo completo. No des resultados mágicos: muestra cada manipulación.
+3. Por cada paso entrega el cálculo matemático explícito en CÓDIGO LATEX PURO. Para matrices usa \\begin{pmatrix}...\\end{pmatrix}. Para integrales \\int. Para vectores \\vec{v}. Para bra-ket usa \\langle\\psi| y |\\phi\\rangle.
+4. Por cada paso identifica el NOMBRE FORMAL Y LITERAL de la propiedad, regla, teorema o método (ej: "Regla de la cadena", "Teorema fundamental del cálculo", "Eliminación de Gauss-Jordan", "Segunda Ley de Newton", "Identidad pitagórica", "Compuerta de Hadamard", "Ecuación de Schrödinger").
+5. Por cada paso explica como un profe chileno en la sala: tono amigable, cercano y pedagógico. Expresiones como "ya chiquillos, fíjense bien acá", "ojo con los signos", "simplificamos al tiro".
+6. Para Física, Química, Astrofísica, Astronomía y Geología: indica UNIDADES en cada paso y verifica el análisis dimensional al final.
 7. Entrega el resultado final en CÓDIGO LATEX PURO, con unidades si corresponde.
 
-Importante: Responde estrictamente usando el esquema JSON proporcionado. Asegúrate de que TODA la matemática sea sintaxis LaTeX válida.
+Responde estrictamente usando el esquema JSON. Toda la matemática debe ser LaTeX válido.
 `;
 }
 
@@ -139,7 +201,7 @@ exports.handler = async (event) => {
         };
     }
 
-    const seccion = SECTIONS[sectionKey] || SECTIONS.aritmetica;
+    const seccion = SECTIONS[sectionKey] || null;
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 

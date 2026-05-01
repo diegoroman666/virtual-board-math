@@ -45,6 +45,72 @@
         .font-comic { font-family: 'Comic Neue', 'Comic Sans MS', cursive; }
         .font-chalk { font-family: 'Caveat', 'Architects Daughter', 'Comic Sans MS', cursive; }
 
+        /* ======= CURSORES PERSONALIZADOS ======= */
+        /* Lápiz para pizarra blanca */
+        .cursor-pencil {
+            cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><polygon points='4,28 8,28 26,10 22,6' fill='%23fbbf24' stroke='%23854d0e' stroke-width='1.2'/><polygon points='22,6 26,10 28,8 24,4' fill='%23ec4899' stroke='%23831843' stroke-width='1'/><polygon points='4,28 8,28 6,30' fill='%231e293b'/></svg>") 2 30, crosshair;
+        }
+        /* Tiza para pizarras de tiza */
+        .cursor-chalk {
+            cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><rect x='6' y='4' width='6' height='22' rx='1' fill='%23f5f5dc' stroke='%23a1a1aa' stroke-width='0.8' transform='rotate(-25 9 15)'/><rect x='6' y='4' width='6' height='3' fill='%23e5e7eb' transform='rotate(-25 9 15)'/></svg>") 2 30, crosshair;
+        }
+        /* Plumón / marcador */
+        .cursor-marker {
+            cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><rect x='10' y='4' width='10' height='18' rx='2' fill='%231e40af' stroke='%230c1e4f' stroke-width='1'/><rect x='12' y='4' width='6' height='4' fill='%2393c5fd'/><polygon points='10,22 20,22 17,28 13,28' fill='%23334155' stroke='%23000' stroke-width='0.6'/></svg>") 4 30, crosshair;
+        }
+        /* Goma de borrar */
+        .cursor-eraser {
+            cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><rect x='4' y='14' width='22' height='10' rx='2' fill='%23f472b6' stroke='%23831843' stroke-width='1.2' transform='rotate(-15 15 19)'/><rect x='4' y='14' width='22' height='4' fill='%23fbcfe8' transform='rotate(-15 15 19)'/></svg>") 6 24, crosshair;
+        }
+
+        /* ======= MARCO DE MADERA ESTILO AULA ======= */
+        .frame-wood {
+            position: relative;
+            box-shadow:
+                inset 0 0 0 4px #1c0d05,
+                inset 0 0 0 12px #6b3f1a,
+                inset 0 0 0 14px #8b5a2b,
+                inset 0 0 0 22px #5c3a1f,
+                inset 0 0 0 26px #2a1810;
+        }
+        /* Tornillos decorativos en las esquinas */
+        .frame-wood::before,
+        .frame-wood::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #d4d4d4, #525252 70%, #171717);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.6);
+            z-index: 5;
+            pointer-events: none;
+        }
+        .frame-wood::before { top: 8px; left: 8px; }
+        .frame-wood::after { top: 8px; right: 8px; }
+        /* Tornillos inferiores via spans (los agrego con JS) o usando un wrapper */
+        .frame-wood-corner {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #d4d4d4, #525252 70%, #171717);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.6);
+            z-index: 5;
+            pointer-events: none;
+        }
+        .frame-wood-corner.bl { bottom: 8px; left: 8px; }
+        .frame-wood-corner.br { bottom: 8px; right: 8px; }
+
+        /* Frame para tema blanco: marco metalizado más sutil */
+        .frame-metal {
+            position: relative;
+            box-shadow:
+                inset 0 0 0 3px #cbd5e1,
+                inset 0 0 0 8px #94a3b8,
+                inset 0 0 0 11px #64748b;
+        }
+
         /* Pizarra blanca con cuadricula escolar */
         .board-light {
             background-color: var(--bg-board);
@@ -136,6 +202,13 @@
             <button id="btn-theme-black" class="theme-btn p-2 rounded-lg hover:bg-white/20 transition-all" title="Pizarra negra">
                 <i data-lucide="square" class="w-5 h-5" style="color:#1f2937;fill:#1f2937"></i>
             </button>
+            <div class="w-px h-6 bg-white/20"></div>
+            <button id="btn-history" class="p-2 rounded-lg hover:bg-white/20 transition-all" title="Historia de la computación">
+                <i data-lucide="scroll-text" class="w-5 h-5"></i>
+            </button>
+            <button id="btn-about" class="p-2 rounded-lg hover:bg-white/20 transition-all" title="Acerca de">
+                <i data-lucide="info" class="w-5 h-5"></i>
+            </button>
         </div>
     </header>
 
@@ -171,20 +244,186 @@
         </div>
 
         <!-- Canvas Container -->
-        <div id="canvas-container" class="flex-1 relative cursor-crosshair overflow-hidden board-light">
+        <div id="canvas-container" class="flex-1 relative cursor-pencil overflow-hidden board-light">
             <canvas id="board" class="absolute inset-0 w-full h-full"></canvas>
+
+            <!-- Tornillos decorativos inferiores (los superiores van por ::before/::after) -->
+            <span class="frame-wood-corner bl hidden"></span>
+            <span class="frame-wood-corner br hidden"></span>
 
             <div id="empty-canvas-hint" class="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div id="hint-card" class="flex flex-col items-center gap-3 p-8 rounded-3xl text-center bg-white/80 border border-slate-200 shadow-sm" style="color: var(--hint-color);">
                     <i data-lucide="pencil" class="w-16 h-16 opacity-60"></i>
                     <p class="text-2xl font-bold font-comic" id="hint-text">Dibuja tu ejercicio aquí, chiquillos...</p>
                     <p class="text-sm opacity-80 font-comic" id="hint-section-text">Sección actual: Aritmética</p>
+                    <p class="text-xs opacity-70 font-comic">El profe detecta solito de qué tipo es 🧠</p>
                 </div>
             </div>
 
             <div id="solution-overlay" class="hidden absolute inset-0 z-30 bg-white/95 backdrop-blur-md overflow-y-auto no-scrollbar p-6 md:p-12"></div>
         </div>
     </main>
+
+    <!-- Modal: Historia de la Computación -->
+    <div id="history-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-bg">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeHistoryModal()"></div>
+        <div class="relative bg-gradient-to-br from-amber-50 to-stone-100 rounded-3xl shadow-2xl max-w-4xl w-11/12 max-h-[88vh] overflow-y-auto p-6 md:p-10 border-4 border-amber-200">
+            <div class="flex items-center justify-between mb-6 sticky top-0 bg-gradient-to-br from-amber-50 to-stone-100 py-2 z-10">
+                <h2 class="text-2xl md:text-3xl font-bold font-comic text-stone-800 flex items-center gap-3">
+                    <i data-lucide="scroll-text" class="w-7 h-7 text-amber-700"></i>
+                    Historia de la Computación
+                </h2>
+                <button onclick="closeHistoryModal()" class="p-2 hover:bg-amber-100 rounded-lg transition-all">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <p class="text-stone-600 mb-6 font-comic italic">Una línea de tiempo desde las máquinas mecánicas hasta el silicio, los pioneros que la hicieron posible y por qué hoy todo depende de Taiwán.</p>
+
+            <div class="space-y-5 text-stone-700 font-comic">
+
+                <div class="flex gap-4 border-l-4 border-amber-400 pl-4">
+                    <div class="shrink-0">
+                        <span class="block text-amber-700 font-bold text-lg">~1642</span>
+                        <span class="text-xs text-stone-500">Era mecánica</span>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-stone-900">Pascal y Leibniz: las primeras calculadoras</h3>
+                        <p>Blaise Pascal construyó la <b>Pascalina</b>, una máquina de engranajes capaz de sumar y restar. Gottfried Leibniz mejoró la idea con su <b>Stepped Reckoner</b> (multiplicaba y dividía) e ideó el sistema binario, base de toda la computación moderna.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 border-l-4 border-amber-400 pl-4">
+                    <div class="shrink-0">
+                        <span class="block text-amber-700 font-bold text-lg">1830s</span>
+                        <span class="text-xs text-stone-500">Vapor y bronce</span>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-stone-900">Babbage y Ada Lovelace</h3>
+                        <p>Charles Babbage diseñó la <b>Máquina Analítica</b>, un computador mecánico programable con tarjetas perforadas. <b>Ada Lovelace</b> escribió el primer algoritmo para esa máquina — está considerada la primera programadora de la historia.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 border-l-4 border-stone-400 pl-4">
+                    <div class="shrink-0">
+                        <span class="block text-stone-700 font-bold text-lg">1936-45</span>
+                        <span class="text-xs text-stone-500">Lógica y guerra</span>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-stone-900">Turing, Shannon, Von Neumann</h3>
+                        <p><b>Alan Turing</b> definió la "máquina de Turing" (el modelo teórico de cualquier computador) y descifró el código Enigma nazi. <b>Claude Shannon</b> demostró que el álgebra booleana podía implementarse con relés. <b>John von Neumann</b> diseñó la arquitectura que aún hoy usan tu PC y tu teléfono: programa y datos en la misma memoria.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 border-l-4 border-orange-400 pl-4">
+                    <div class="shrink-0">
+                        <span class="block text-orange-700 font-bold text-lg">1946</span>
+                        <span class="text-xs text-stone-500">Tubos al vacío</span>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-stone-900">ENIAC: la era del tubo de vacío</h3>
+                        <p>Primer computador electrónico de propósito general. 30 toneladas, 17.000 tubos al vacío, ocupaba una sala. Cuando se quemaba un tubo (pasaba seguido), había que cazarlo a mano. De ahí el término "bug".</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 border-l-4 border-red-500 pl-4">
+                    <div class="shrink-0">
+                        <span class="block text-red-700 font-bold text-lg">1947</span>
+                        <span class="text-xs text-stone-500">Bell Labs, EE.UU.</span>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-stone-900">El TRANSISTOR cambia todo</h3>
+                        <p><b>Shockley, Bardeen y Brattain</b> inventan el transistor en los Bell Labs. Reemplaza al tubo de vacío: más pequeño, más frío, más rápido, más barato. Premio Nobel 1956. Sin esto no existe nada de lo que vino después.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 border-l-4 border-rose-500 pl-4">
+                    <div class="shrink-0">
+                        <span class="block text-rose-700 font-bold text-lg">1955</span>
+                        <span class="text-xs text-stone-500">Tokio, Japón</span>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-stone-900">SONY pone el transistor en el mundo</h3>
+                        <p>Sony (entonces "Tokyo Tsushin Kogyo") lanza la <b>TR-55</b>, la primera radio de transistores de Japón, y luego la <b>TR-63</b> que conquistó EE.UU. Sony fue clave en miniaturizar la electrónica de consumo: Walkman, Trinitron, CD, PlayStation. Demostraron que Asia podía liderar tecnología, no solo copiarla.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 border-l-4 border-purple-500 pl-4">
+                    <div class="shrink-0">
+                        <span class="block text-purple-700 font-bold text-lg">1958-65</span>
+                        <span class="text-xs text-stone-500">Texas / California</span>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-stone-900">El circuito integrado y la Ley de Moore</h3>
+                        <p><b>Jack Kilby</b> (Texas Instruments) y <b>Robert Noyce</b> (Fairchild → Intel) inventan el circuito integrado: muchos transistores en una sola pastilla de silicio. En 1965 <b>Gordon Moore</b> observa que el número de transistores por chip <b>se duplica cada ~2 años</b>. Esa <b>Ley de Moore</b> ha guiado la industria por 60 años — todavía se cumple, aunque cada vez más cara de mantener.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 border-l-4 border-blue-500 pl-4">
+                    <div class="shrink-0">
+                        <span class="block text-blue-700 font-bold text-lg">1971</span>
+                        <span class="text-xs text-stone-500">Silicon Valley</span>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-stone-900">El microprocesador: Intel 4004</h3>
+                        <p>El primer "computador en un chip". 2.300 transistores. Hoy un chip moderno tiene <b>más de 100.000 millones</b>. Empieza la era del PC: IBM, Apple, Microsoft. Silicon Valley se convierte en el corazón global del software y la innovación.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 border-l-4 border-emerald-500 pl-4">
+                    <div class="shrink-0">
+                        <span class="block text-emerald-700 font-bold text-lg">1987</span>
+                        <span class="text-xs text-stone-500">Hsinchu, Taiwán</span>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-stone-900">Nace TSMC: por qué hoy todo depende de Taiwán</h3>
+                        <p><b>Morris Chang</b> funda <b>TSMC</b> con un modelo nuevo: una "foundry" que solo fabrica chips diseñados por otros. Hoy TSMC produce <b>~90% de los chips avanzados del mundo</b>: los procesadores M de Apple, las GPUs de NVIDIA, los SoCs de Qualcomm, los chips de AMD. Si Taiwán para, el mundo se queda sin teléfonos, autos, ni servidores. Por eso la geopolítica entre EE.UU., China y Taiwán es tan tensa: no es solo política, es silicio.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 border-l-4 border-cyan-500 pl-4">
+                    <div class="shrink-0">
+                        <span class="block text-cyan-700 font-bold text-lg">2010s+</span>
+                        <span class="text-xs text-stone-500">Hoy</span>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-stone-900">GPUs, IA y Computación Cuántica</h3>
+                        <p>NVIDIA convierte las GPUs (originalmente para videojuegos) en el motor de la inteligencia artificial moderna. Google, IBM e Intel desarrollan computadores cuánticos basados en qubits. La Ley de Moore se acerca a sus límites físicos: los transistores ya miden ~3 nanómetros, casi escala atómica. El próximo salto puede ser cuántico... o algo que aún no imaginamos.</p>
+                    </div>
+                </div>
+
+                <div class="bg-amber-100 border-2 border-amber-300 rounded-2xl p-5 mt-6">
+                    <p class="text-stone-800 italic">
+                        <i data-lucide="lightbulb" class="w-5 h-5 inline text-amber-700"></i>
+                        En 80 años pasamos de máquinas que ocupaban salas enteras a procesadores con 100 mil millones de transistores en un cuadrado de 2 cm². Cada vez que escribes en esta pizarra, estás usando 60 años de física, química, geopolítica y matemática condensada en silicio. ¡Bacán, ¿no?!
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Acerca de -->
+    <div id="about-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-bg">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeAboutModal()"></div>
+        <div class="relative bg-white rounded-3xl shadow-2xl max-w-md w-11/12 p-8 text-center border-4 border-indigo-200">
+            <button onclick="closeAboutModal()" class="absolute top-3 right-3 p-2 hover:bg-slate-100 rounded-lg transition-all">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <div class="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg">
+                <i data-lucide="book-open" class="w-10 h-10 text-white"></i>
+            </div>
+            <h2 class="text-2xl font-bold font-comic text-slate-800 mb-2">La Pizarra del Profe</h2>
+            <p class="text-slate-500 font-comic mb-6">Pizarra virtual inteligente con IA para resolver ejercicios paso a paso.</p>
+
+            <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 mb-4">
+                <p class="text-xs text-slate-400 font-comic uppercase tracking-wider mb-1">Hecho por</p>
+                <p class="text-xl font-bold text-indigo-700 font-comic">Diego Román</p>
+            </div>
+
+            <p class="text-xs text-slate-400 font-comic">© 2026 Diego Román · Todos los derechos reservados</p>
+            <p class="text-xs text-slate-400 font-comic mt-1">Powered by Gemini · KaTeX · Tailwind</p>
+        </div>
+    </div>
 
     <!-- Modal: Selector de Sección -->
     <div id="section-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-bg">
@@ -274,6 +513,48 @@
                 icon: 'flask-conical',
                 color: 'from-lime-400 to-green-600',
                 contexto: 'química con foco en cálculo: estequiometría, balanceo de ecuaciones químicas (método algebraico, ion electrón), mol y masa molar, número de Avogadro, concentraciones (molaridad, molalidad, normalidad, % m/m, % m/v, ppm), gases ideales (PV=nRT), pH y pOH, equilibrio químico (Kc, Kp), termoquímica (entalpía, ley de Hess).'
+            },
+            mecanica: {
+                label: 'Mecánica Clásica',
+                icon: 'cog',
+                color: 'from-amber-500 to-yellow-700',
+                contexto: 'mecánica clásica avanzada: Lagrange, Hamilton, principio de mínima acción, dinámica de cuerpos rígidos, oscilaciones, gravitación, órbitas keplerianas.'
+            },
+            fisicaCuantica: {
+                label: 'Física Cuántica',
+                icon: 'atom',
+                color: 'from-purple-500 to-fuchsia-700',
+                contexto: 'fenómenos cuánticos: efecto fotoeléctrico, Planck, Bohr, de Broglie, doble rendija, Compton, dualidad onda-partícula.'
+            },
+            mecanicaCuantica: {
+                label: 'Mecánica Cuántica',
+                icon: 'orbit',
+                color: 'from-indigo-500 to-purple-700',
+                contexto: 'formalismo cuántico: ecuación de Schrödinger, función de onda, Heisenberg, operadores, bra-ket de Dirac, conmutadores.'
+            },
+            computacionCuantica: {
+                label: 'Computación Cuántica',
+                icon: 'cpu',
+                color: 'from-cyan-500 to-blue-700',
+                contexto: 'qubits, superposición, entrelazamiento, compuertas (Hadamard, CNOT), algoritmos de Grover y Shor, circuitos cuánticos.'
+            },
+            astrofisica: {
+                label: 'Astrofísica',
+                icon: 'sparkles',
+                color: 'from-violet-500 to-indigo-700',
+                contexto: 'leyes de Kepler, Stefan-Boltzmann, Wien, ley de Hubble, evolución estelar, agujeros negros (Schwarzschild), corrimiento al rojo.'
+            },
+            astronomia: {
+                label: 'Astronomía',
+                icon: 'moon',
+                color: 'from-slate-500 to-slate-800',
+                contexto: 'coordenadas celestes, periodos orbitales, magnitudes estelares, eclipses, fases lunares, mareas, sistemas planetarios.'
+            },
+            geologia: {
+                label: 'Geología',
+                icon: 'mountain',
+                color: 'from-stone-500 to-amber-800',
+                contexto: 'tectónica, sismología (Richter, Mw), datación radiométrica con vida media, ondas P y S, escala de Mohs, geocronología.'
             }
         };
 
@@ -413,6 +694,18 @@
         window.addEventListener('touchend', handleEnd);
 
         // ===== HERRAMIENTAS =====
+        function applyCursor() {
+            container.classList.remove('cursor-pencil', 'cursor-chalk', 'cursor-marker', 'cursor-eraser');
+            if (tool === 'eraser') {
+                container.classList.add('cursor-eraser');
+                return;
+            }
+            // Cursor según tema
+            if (currentTheme === 'light') container.classList.add('cursor-pencil');
+            else if (currentTheme === 'chalk-green') container.classList.add('cursor-chalk');
+            else container.classList.add('cursor-marker'); // negra → plumón blanco
+        }
+
         function setTool(newTool) {
             tool = newTool;
             if (tool === 'pen') {
@@ -422,6 +715,7 @@
                 btnEraser.className = "p-3 rounded-xl transition-all bg-indigo-100 text-indigo-700 shadow-sm";
                 btnPen.className = "p-3 rounded-xl transition-all text-slate-500 hover:bg-slate-100";
             }
+            applyCursor();
         }
 
         btnPen.addEventListener('click', () => setTool('pen'));
@@ -456,19 +750,29 @@
             localStorage.setItem('boardTheme', theme);
             document.documentElement.setAttribute('data-theme', theme);
 
-            container.classList.remove('board-light', 'board-chalk-green', 'board-chalk-black');
+            container.classList.remove('board-light', 'board-chalk-green', 'board-chalk-black', 'frame-wood', 'frame-metal');
             const hintCard = document.getElementById('hint-card');
-            hintCard.classList.remove('bg-white/80', 'border-slate-200', 'bg-black/30', 'border-white/20');
+            hintCard.classList.remove('bg-white/80', 'border-slate-200', 'bg-black/30', 'border-white/20', 'bg-black/40');
+
+            // Tornillos inferiores del marco de madera
+            const cornerBL = document.querySelector('.frame-wood-corner.bl');
+            const cornerBR = document.querySelector('.frame-wood-corner.br');
 
             if (theme === 'light') {
-                container.classList.add('board-light');
+                container.classList.add('board-light', 'frame-metal');
                 hintCard.classList.add('bg-white/80', 'border-slate-200');
+                cornerBL?.classList.add('hidden');
+                cornerBR?.classList.add('hidden');
             } else if (theme === 'chalk-green') {
-                container.classList.add('board-chalk-green');
+                container.classList.add('board-chalk-green', 'frame-wood');
                 hintCard.classList.add('bg-black/30', 'border-white/20');
+                cornerBL?.classList.remove('hidden');
+                cornerBR?.classList.remove('hidden');
             } else if (theme === 'chalk-black') {
-                container.classList.add('board-chalk-black');
+                container.classList.add('board-chalk-black', 'frame-wood');
                 hintCard.classList.add('bg-black/40', 'border-white/20');
+                cornerBL?.classList.remove('hidden');
+                cornerBR?.classList.remove('hidden');
             }
 
             ['btn-theme-light','btn-theme-green','btn-theme-black'].forEach(id => {
@@ -477,6 +781,7 @@
             const activeMap = {'light':'btn-theme-light','chalk-green':'btn-theme-green','chalk-black':'btn-theme-black'};
             document.getElementById(activeMap[theme]).classList.add('ring-2','ring-white');
 
+            applyCursor();
             redrawAll();
         }
 
@@ -514,6 +819,32 @@
         window.closeSectionModal = function() {
             document.getElementById('section-modal').classList.add('hidden');
         };
+
+        // ===== MODALES DE HISTORIA Y ACERCA DE =====
+        document.getElementById('btn-history').addEventListener('click', () => {
+            document.getElementById('history-modal').classList.remove('hidden');
+            lucide.createIcons();
+        });
+        window.closeHistoryModal = function() {
+            document.getElementById('history-modal').classList.add('hidden');
+        };
+
+        document.getElementById('btn-about').addEventListener('click', () => {
+            document.getElementById('about-modal').classList.remove('hidden');
+            lucide.createIcons();
+        });
+        window.closeAboutModal = function() {
+            document.getElementById('about-modal').classList.add('hidden');
+        };
+
+        // Cerrar modales con Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeHistoryModal();
+                closeAboutModal();
+                closeSectionModal();
+            }
+        });
 
         // ===== LÓGICA DE INTELIGENCIA ARTIFICIAL =====
         // La API key vive como variable de entorno en Netlify (GEMINI_API_KEY).
@@ -555,7 +886,23 @@
 
                 const base64Image = tempCanvas.toDataURL('image/png').split(',')[1];
                 const solution = await fetchSolution(base64Image, currentSection);
-                renderSolutionOverlay(solution);
+
+                // Auto-detección: si Gemini detectó otra sección, actualizamos la UI
+                let seccionDetectadaCambio = null;
+                if (solution.seccionDetectada && SECTIONS[solution.seccionDetectada]) {
+                    if (solution.seccionDetectada !== currentSection) {
+                        seccionDetectadaCambio = {
+                            anterior: currentSection,
+                            nueva: solution.seccionDetectada
+                        };
+                    }
+                    currentSection = solution.seccionDetectada;
+                    localStorage.setItem('mathSection', currentSection);
+                    document.getElementById('current-section-label').innerText = SECTIONS[currentSection].label;
+                    document.getElementById('hint-section-text').innerText = `Sección actual: ${SECTIONS[currentSection].label}`;
+                }
+
+                renderSolutionOverlay(solution, seccionDetectadaCambio);
 
             } catch (err) {
                 console.error(err);
@@ -620,7 +967,7 @@
             solutionOverlay.classList.add('hidden');
         };
 
-        function renderSolutionOverlay(data) {
+        function renderSolutionOverlay(data, cambioSeccion) {
             const renderMath = (tex) => {
                 try {
                     return katex.renderToString(tex || '', { throwOnError: false, displayMode: true });
@@ -630,6 +977,19 @@
             };
 
             const seccion = SECTIONS[currentSection];
+
+            // Aviso si la auto-detección cambió la sección
+            const cambioHtml = cambioSeccion ? `
+                <div class="mb-6 mx-auto max-w-2xl">
+                    <div class="flex items-center gap-3 bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-300 rounded-2xl p-4 shadow-sm">
+                        <i data-lucide="brain-circuit" class="w-7 h-7 text-amber-600 shrink-0"></i>
+                        <div class="text-sm font-comic text-stone-700">
+                            <span class="font-bold text-amber-700">El profe detectó automáticamente:</span>
+                            tu ejercicio era de <b>${SECTIONS[cambioSeccion.nueva].label}</b>, no de ${SECTIONS[cambioSeccion.anterior].label}. Cambié la sección por ti.
+                        </div>
+                    </div>
+                </div>
+            ` : '';
 
             let pasosHtml = data.pasos.map((paso, index) => `
                 <div class="mb-8 flex flex-col items-start w-full relative">
@@ -667,6 +1027,7 @@
                             Sección: ${seccion.label}
                         </span>
                     </div>
+                    ${cambioHtml}
                     <div class="mb-10 text-center">
                         <p class="text-slate-400 font-comic mb-2 text-lg">Ejercicio transcrito:</p>
                         <div class="text-indigo-600 font-bold border-b-4 border-indigo-200 pb-4 inline-block px-8 overflow-x-auto">
@@ -700,9 +1061,6 @@
         applyTheme(currentTheme);
         resizeCanvas();
         updateUIState();
-
-        // Si no hay API key al cargar, no abrimos el modal automáticamente para no asustar.
-        // Pero al primer click de "Resolver" se le pedirá.
     </script>
 </body>
 </html>
