@@ -1,0 +1,18 @@
+# Variables de entorno locales — NUNCA subir esto
+.env
+.env.*
+!.env.example
+
+# Netlify CLI
+.netlify/
+node_modules/
+
+# Editores y herramientas locales
+.vscode/
+.idea/
+.sixth/
+*.swp
+
+# Sistema
+.DS_Store
+Thumbs.db

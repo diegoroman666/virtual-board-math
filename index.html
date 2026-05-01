@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pizarra Virtual - Profe de Mate Chile</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&family=Caveat:wght@400;700&family=Architects+Daughter&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-board: #ffffff;
+            --grid-color: #e2e8f0;
+            --stroke-color: #1e293b;
+            --eraser-color: #ffffff;
+            --hint-color: #94a3b8;
+            --header-bg: #4f46e5;
+            --header-text: #ffffff;
+        }
+
+        html[data-theme="chalk-green"] {
+            --bg-board: #0d3b2c;
+            --grid-color: rgba(255,255,255,0.06);
+            --stroke-color: #f5f5dc;
+            --eraser-color: #0d3b2c;
+            --hint-color: rgba(245,245,220,0.4);
+            --header-bg: #062018;
+            --header-text: #f5f5dc;
+        }
+
+        html[data-theme="chalk-black"] {
+            --bg-board: #141414;
+            --grid-color: rgba(255,255,255,0.05);
+            --stroke-color: #ffffff;
+            --eraser-color: #141414;
+            --hint-color: rgba(255,255,255,0.35);
+            --header-bg: #000000;
+            --header-text: #ffffff;
+        }
+
+        canvas { touch-action: none; }
+
+        .font-comic { font-family: 'Comic Neue', 'Comic Sans MS', cursive; }
+        .font-chalk { font-family: 'Caveat', 'Architects Daughter', 'Comic Sans MS', cursive; }
+
+        /* Pizarra blanca con cuadricula escolar */
+        .board-light {
+            background-color: var(--bg-board);
+            background-image:
+                linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
+                linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+
+        /* Pizarra de tiza verde (con textura sutil) */
+        .board-chalk-green {
+            background-color: var(--bg-board);
+            background-image:
+                radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+                radial-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+                linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(0,0,0,0.15) 100%);
+            background-size: 4px 4px, 7px 7px, 100% 100%;
+            background-position: 0 0, 2px 2px, 0 0;
+        }
+
+        /* Pizarra de tiza negra */
+        .board-chalk-black {
+            background-color: var(--bg-board);
+            background-image:
+                radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+                radial-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                linear-gradient(135deg, rgba(255,255,255,0.015) 0%, rgba(0,0,0,0.4) 100%);
+            background-size: 4px 4px, 7px 7px, 100% 100%;
+            background-position: 0 0, 2px 2px, 0 0;
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Animacion sutil para tiza */
+        @keyframes chalkPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.85; }
+        }
+
+        .section-pill {
+            transition: all 0.2s ease;
+        }
+        .section-pill:hover { transform: translateY(-1px); }
+        .section-pill.active {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            box-shadow: 0 4px 12px rgba(99,102,241,0.4);
+        }
+
+        /* Modal animations */
+        .modal-bg { animation: fadeIn 0.2s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Estilos para vista chalkboard del overlay de solucion */
+        html[data-theme="chalk-green"] #solution-overlay,
+        html[data-theme="chalk-black"] #solution-overlay {
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(8px);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans text-slate-800 m-0 p-0 overflow-hidden bg-slate-50">
+
+    <!-- Header -->
+    <header class="p-3 shadow-md flex flex-wrap items-center justify-between gap-3 z-20 shrink-0" style="background-color: var(--header-bg); color: var(--header-text);">
+        <div class="flex items-center gap-3">
+            <i data-lucide="book-open" class="w-6 h-6"></i>
+            <h1 class="text-lg md:text-xl font-bold tracking-wide font-comic">La Pizarra del Profe</h1>
+        </div>
+
+        <!-- Selector de seccion (centro) -->
+        <div class="flex items-center gap-2 order-3 md:order-2 w-full md:w-auto justify-center">
+            <button id="btn-section" class="flex items-center gap-2 bg-white/15 hover:bg-white/25 px-4 py-2 rounded-xl transition-all font-comic">
+                <i data-lucide="layers" class="w-5 h-5"></i>
+                <span id="current-section-label" class="font-bold">Aritmética</span>
+                <i data-lucide="chevron-down" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <!-- Botones de tema y ajustes (derecha) -->
+        <div class="flex items-center gap-2 order-2 md:order-3">
+            <button id="btn-theme-light" class="theme-btn p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-all" title="Pizarra blanca">
+                <i data-lucide="sun" class="w-5 h-5"></i>
+            </button>
+            <button id="btn-theme-green" class="theme-btn p-2 rounded-lg hover:bg-white/20 transition-all" title="Pizarra verde">
+                <i data-lucide="square" class="w-5 h-5" style="color:#34d399"></i>
+            </button>
+            <button id="btn-theme-black" class="theme-btn p-2 rounded-lg hover:bg-white/20 transition-all" title="Pizarra negra">
+                <i data-lucide="square" class="w-5 h-5" style="color:#1f2937;fill:#1f2937"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 flex flex-col relative">
+
+        <!-- Toolbar flotante -->
+        <div class="absolute top-4 left-1/2 -translate-x-1/2 flex flex-wrap items-center justify-center gap-3 p-2 rounded-2xl bg-white/90 backdrop-blur shadow-lg z-20 border border-slate-200">
+            <div class="flex items-center gap-1">
+                <button id="btn-pen" class="p-3 rounded-xl transition-all bg-indigo-100 text-indigo-700 shadow-sm" title="Lápiz / Tiza">
+                    <i data-lucide="pen-tool" class="w-6 h-6"></i>
+                </button>
+                <button id="btn-eraser" class="p-3 rounded-xl transition-all text-slate-500 hover:bg-slate-100" title="Goma de borrar">
+                    <i data-lucide="eraser" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div class="w-px h-8 bg-slate-200"></div>
+            <div class="flex items-center gap-1">
+                <button id="btn-undo" class="p-3 text-slate-500 hover:bg-slate-100 rounded-xl transition-all" title="Deshacer">
+                    <i data-lucide="rotate-ccw" class="w-6 h-6"></i>
+                </button>
+                <button id="btn-clear" class="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-all" title="Borrar todo">
+                    <i data-lucide="trash-2" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div class="w-px h-8 bg-slate-200 hidden md:block"></div>
+
+            <button id="btn-solve" class="flex items-center gap-2 px-6 py-3 rounded-xl font-bold font-comic text-lg shadow-sm transition-all bg-slate-200 text-slate-400 cursor-not-allowed justify-center" disabled>
+                <div id="solve-spinner" class="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin hidden"></div>
+                <i id="solve-icon" data-lucide="sparkles" class="w-6 h-6 fill-current"></i>
+                <span id="solve-text">¡Resolver Ejercicio!</span>
+            </button>
+        </div>
+
+        <!-- Canvas Container -->
+        <div id="canvas-container" class="flex-1 relative cursor-crosshair overflow-hidden board-light">
+            <canvas id="board" class="absolute inset-0 w-full h-full"></canvas>
+
+            <div id="empty-canvas-hint" class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div id="hint-card" class="flex flex-col items-center gap-3 p-8 rounded-3xl text-center bg-white/80 border border-slate-200 shadow-sm" style="color: var(--hint-color);">
+                    <i data-lucide="pencil" class="w-16 h-16 opacity-60"></i>
+                    <p class="text-2xl font-bold font-comic" id="hint-text">Dibuja tu ejercicio aquí, chiquillos...</p>
+                    <p class="text-sm opacity-80 font-comic" id="hint-section-text">Sección actual: Aritmética</p>
+                </div>
+            </div>
+
+            <div id="solution-overlay" class="hidden absolute inset-0 z-30 bg-white/95 backdrop-blur-md overflow-y-auto no-scrollbar p-6 md:p-12"></div>
+        </div>
+    </main>
+
+    <!-- Modal: Selector de Sección -->
+    <div id="section-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-bg">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeSectionModal()"></div>
+        <div class="relative bg-white rounded-3xl shadow-2xl max-w-3xl w-11/12 max-h-[85vh] overflow-y-auto p-6 md:p-8">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold font-comic text-slate-800 flex items-center gap-3">
+                    <i data-lucide="layers" class="w-7 h-7 text-indigo-600"></i>
+                    Elige la sección de matemática
+                </h2>
+                <button onclick="closeSectionModal()" class="p-2 hover:bg-slate-100 rounded-lg transition-all">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <p class="text-slate-500 mb-6 font-comic">El profe se prepara según la materia. Elige una y a la pizarra.</p>
+            <div id="section-grid" class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <!-- Se llena con JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== DEFINICIÓN DE SECCIONES MATEMÁTICAS =====
+        const SECTIONS = {
+            aritmetica: {
+                label: 'Aritmética',
+                icon: 'calculator',
+                color: 'from-sky-400 to-blue-500',
+                contexto: 'operaciones básicas (suma, resta, multiplicación, división con algoritmo paso a paso), fracciones (suma, resta, multiplicación, división, simplificación), decimales, potencias y raíces, jerarquía de operaciones (PAPOMUDAS), regla de tres simple y compuesta, porcentajes, proporciones, mínimo común múltiplo y máximo común divisor.'
+            },
+            algebra: {
+                label: 'Álgebra',
+                icon: 'variable',
+                color: 'from-violet-400 to-purple-600',
+                contexto: 'reducción de términos semejantes, ecuaciones lineales y cuadráticas (fórmula general, completación de cuadrados, factorización), sistemas de ecuaciones lineales (igualación, sustitución, reducción), factorización (factor común, trinomio cuadrado perfecto, suma/diferencia de cubos, agrupación), productos notables, polinomios (suma, resta, multiplicación, división sintética/Ruffini), inecuaciones, valor absoluto, logaritmos y exponenciales, progresiones aritméticas y geométricas.'
+            },
+            matricial: {
+                label: 'Álgebra Matricial',
+                icon: 'grid-3x3',
+                color: 'from-fuchsia-500 to-pink-600',
+                contexto: 'álgebra lineal y matrices: suma, resta y multiplicación de matrices, matriz transpuesta, determinantes (regla de Sarrus, expansión por cofactores), matriz inversa (método de cofactores y por Gauss-Jordan), regla de Cramer, eliminación de Gauss y Gauss-Jordan, rango de una matriz, sistemas de ecuaciones (compatibles determinados/indeterminados/incompatibles), espacios vectoriales, dependencia e independencia lineal, vectores en R2 y R3, producto punto, producto cruz, ángulo entre vectores, valores y vectores propios.'
+            },
+            geometria: {
+                label: 'Geometría',
+                icon: 'shapes',
+                color: 'from-emerald-400 to-teal-600',
+                contexto: 'áreas y perímetros de figuras planas, volúmenes y áreas de sólidos (prismas, pirámides, cilindros, conos, esferas), teorema de Pitágoras y sus aplicaciones, semejanza y congruencia de triángulos, geometría analítica: distancia entre puntos, punto medio, ecuación de la recta (pendiente-intersecto, punto-pendiente, general), rectas paralelas y perpendiculares, ecuación de la circunferencia, parábola, elipse, hipérbola.'
+            },
+            trigonometria: {
+                label: 'Trigonometría',
+                icon: 'triangle',
+                color: 'from-orange-400 to-red-500',
+                contexto: 'razones trigonométricas (seno, coseno, tangente, cotangente, secante, cosecante), círculo unitario, ángulos en grados y radianes, identidades fundamentales (pitagóricas, de suma y resta, de ángulo doble y mitad), ecuaciones trigonométricas, ley de senos, ley de cosenos, gráficas de funciones trigonométricas (amplitud, periodo, desfase), funciones trigonométricas inversas.'
+            },
+            calculoDif: {
+                label: 'Cálculo Diferencial',
+                icon: 'trending-up',
+                color: 'from-cyan-400 to-blue-600',
+                contexto: 'cálculo infinitesimal diferencial: límites (laterales, al infinito, indeterminaciones 0/0, ∞/∞, ∞-∞, 0·∞, regla de L\\u2019Hôpital), continuidad de funciones, derivadas por definición y por reglas (suma, producto, cociente, regla de la cadena), derivadas de funciones trascendentes (trigonométricas, exponenciales, logarítmicas, inversas), derivación implícita, derivadas de orden superior, máximos y mínimos absolutos y relativos, criterio de la primera y segunda derivada, puntos de inflexión, optimización, teorema del valor medio, razón de cambio relacionada.'
+            },
+            calculoInt: {
+                label: 'Cálculo Integral',
+                icon: 'sigma',
+                color: 'from-blue-500 to-indigo-700',
+                contexto: 'cálculo infinitesimal integral: integrales indefinidas (antiderivadas), técnicas de integración (sustitución/cambio de variable, integración por partes con regla LIATE, fracciones parciales, sustitución trigonométrica, integrales trigonométricas), integrales definidas, teorema fundamental del cálculo, área bajo la curva y entre curvas, volúmenes de revolución (discos, anillos, capas/cascarones), longitud de arco, área de superficie de revolución, integrales impropias, series numéricas y de potencias.'
+            },
+            ecDif: {
+                label: 'Ec. Diferenciales',
+                icon: 'function-square',
+                color: 'from-indigo-500 to-violet-700',
+                contexto: 'ecuaciones diferenciales ordinarias (EDO): EDO de primer orden (variables separables, lineales con factor integrante, exactas, homogéneas, Bernoulli), EDO lineales de segundo orden con coeficientes constantes (homogéneas y no homogéneas, método de coeficientes indeterminados y variación de parámetros), problemas de valor inicial, sistemas de EDO lineales, transformada de Laplace y su inversa, aplicaciones (resortes, circuitos RLC, crecimiento poblacional, ley de enfriamiento de Newton).'
+            },
+            estadistica: {
+                label: 'Estadística',
+                icon: 'bar-chart-3',
+                color: 'from-pink-400 to-rose-600',
+                contexto: 'estadística y probabilidad: medidas de tendencia central (media, mediana, moda), medidas de dispersión (rango, varianza, desviación estándar, coeficiente de variación), distribuciones de probabilidad discretas (binomial, Poisson, geométrica) y continuas (normal, t-Student, chi-cuadrado), permutaciones y combinaciones, probabilidad condicional, teorema de Bayes, intervalos de confianza, pruebas de hipótesis, regresión lineal y correlación.'
+            },
+            fisica: {
+                label: 'Física',
+                icon: 'atom',
+                color: 'from-yellow-400 to-orange-600',
+                contexto: 'física general con énfasis en matemática aplicada: cinemática (MRU, MRUA, caída libre, lanzamiento de proyectiles), dinámica (leyes de Newton, fricción, plano inclinado), trabajo, energía cinética y potencial, conservación de la energía, momentum lineal e impulso, choques elásticos e inelásticos, dinámica rotacional, ondas mecánicas, sonido, óptica geométrica, electricidad (Ley de Coulomb, campo eléctrico, potencial, capacitancia, Ley de Ohm, leyes de Kirchhoff, circuitos RC), magnetismo y electromagnetismo, termodinámica. SIEMPRE: identifica datos con sus unidades del SI, escribe la fórmula formal, reemplaza valores y entrega el resultado con la unidad correspondiente.'
+            },
+            quimica: {
+                label: 'Química',
+                icon: 'flask-conical',
+                color: 'from-lime-400 to-green-600',
+                contexto: 'química con foco en cálculo: estequiometría, balanceo de ecuaciones químicas (método algebraico, ion electrón), mol y masa molar, número de Avogadro, concentraciones (molaridad, molalidad, normalidad, % m/m, % m/v, ppm), gases ideales (PV=nRT), pH y pOH, equilibrio químico (Kc, Kp), termoquímica (entalpía, ley de Hess).'
+            }
+        };
+
+        let currentSection = localStorage.getItem('mathSection') || 'aritmetica';
+        let currentTheme = localStorage.getItem('boardTheme') || 'light';
+
+        // ===== INICIALIZAR ICONOS =====
+        lucide.createIcons();
+
+        // ===== ESTADO DE LA APLICACIÓN =====
+        let isDrawing = false;
+        let lines = [];
+        let currentLine = [];
+        let tool = 'pen';
+        let isProcessing = false;
+
+        const canvas = document.getElementById('board');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('canvas-container');
+
+        const btnPen = document.getElementById('btn-pen');
+        const btnEraser = document.getElementById('btn-eraser');
+        const btnUndo = document.getElementById('btn-undo');
+        const btnClear = document.getElementById('btn-clear');
+        const btnSolve = document.getElementById('btn-solve');
+
+        const solveSpinner = document.getElementById('solve-spinner');
+        const solveIcon = document.getElementById('solve-icon');
+        const solveText = document.getElementById('solve-text');
+        const emptyCanvasHint = document.getElementById('empty-canvas-hint');
+        const solutionOverlay = document.getElementById('solution-overlay');
+
+        // ===== CANVAS =====
+        function getThemeStrokeColor() {
+            return getComputedStyle(document.documentElement).getPropertyValue('--stroke-color').trim();
+        }
+
+        function getThemeBgColor() {
+            return getComputedStyle(document.documentElement).getPropertyValue('--bg-board').trim();
+        }
+
+        function resizeCanvas() {
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            redrawAll();
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function redrawAll() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            lines.forEach(line => drawLine(ctx, line));
+            if (currentLine.length > 0) {
+                drawLine(ctx, { points: currentLine, tool });
+            }
+            updateUIState();
+        }
+
+        function drawLine(context, line) {
+            if (line.points.length < 2) return;
+            const isChalk = currentTheme !== 'light';
+
+            context.beginPath();
+            context.moveTo(line.points[0].x, line.points[0].y);
+            for (let i = 1; i < line.points.length; i++) {
+                context.lineTo(line.points[i].x, line.points[i].y);
+            }
+
+            if (line.tool === 'eraser') {
+                context.globalCompositeOperation = 'destination-out';
+                context.strokeStyle = '#000';
+                context.lineWidth = 30;
+                context.globalAlpha = 1;
+                context.stroke();
+                context.globalCompositeOperation = 'source-over';
+                context.globalAlpha = 1;
+            } else {
+                context.strokeStyle = getThemeStrokeColor();
+                context.lineWidth = isChalk ? 3.5 : 4;
+                context.globalAlpha = isChalk ? 0.92 : 1;
+                if (isChalk) {
+                    context.shadowColor = getThemeStrokeColor();
+                    context.shadowBlur = 0.6;
+                } else {
+                    context.shadowBlur = 0;
+                }
+                context.stroke();
+                context.globalAlpha = 1;
+                context.shadowBlur = 0;
+            }
+        }
+
+        function getPointerPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            let clientX, clientY;
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+        function handleStart(e) {
+            if (!solutionOverlay.classList.contains('hidden')) return;
+            e.preventDefault();
+            isDrawing = true;
+            currentLine = [getPointerPos(e)];
+        }
+
+        function handleMove(e) {
+            if (!isDrawing) return;
+            e.preventDefault();
+            currentLine.push(getPointerPos(e));
+            redrawAll();
+        }
+
+        function handleEnd() {
+            if (!isDrawing) return;
+            isDrawing = false;
+            if (currentLine.length > 0) {
+                lines.push({ points: currentLine, tool });
+                currentLine = [];
+                redrawAll();
+            }
+        }
+
+        canvas.addEventListener('mousedown', handleStart);
+        canvas.addEventListener('mousemove', handleMove);
+        window.addEventListener('mouseup', handleEnd);
+        canvas.addEventListener('touchstart', handleStart, { passive: false });
+        canvas.addEventListener('touchmove', handleMove, { passive: false });
+        window.addEventListener('touchend', handleEnd);
+
+        // ===== HERRAMIENTAS =====
+        function setTool(newTool) {
+            tool = newTool;
+            if (tool === 'pen') {
+                btnPen.className = "p-3 rounded-xl transition-all bg-indigo-100 text-indigo-700 shadow-sm";
+                btnEraser.className = "p-3 rounded-xl transition-all text-slate-500 hover:bg-slate-100";
+            } else {
+                btnEraser.className = "p-3 rounded-xl transition-all bg-indigo-100 text-indigo-700 shadow-sm";
+                btnPen.className = "p-3 rounded-xl transition-all text-slate-500 hover:bg-slate-100";
+            }
+        }
+
+        btnPen.addEventListener('click', () => setTool('pen'));
+        btnEraser.addEventListener('click', () => setTool('eraser'));
+        btnUndo.addEventListener('click', () => { lines.pop(); redrawAll(); });
+        btnClear.addEventListener('click', () => {
+            lines = [];
+            solutionOverlay.classList.add('hidden');
+            solutionOverlay.innerHTML = '';
+            redrawAll();
+        });
+
+        function updateUIState() {
+            if (lines.length === 0 && currentLine.length === 0) {
+                emptyCanvasHint.classList.remove('hidden');
+            } else {
+                emptyCanvasHint.classList.add('hidden');
+            }
+
+            if (lines.length > 0 && !isProcessing) {
+                btnSolve.disabled = false;
+                btnSolve.className = "flex items-center gap-2 px-6 py-3 rounded-xl font-bold font-comic text-lg shadow-sm transition-all bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-lg hover:-translate-y-1 justify-center";
+            } else {
+                btnSolve.disabled = true;
+                btnSolve.className = "flex items-center gap-2 px-6 py-3 rounded-xl font-bold font-comic text-lg shadow-sm transition-all bg-slate-200 text-slate-400 cursor-not-allowed justify-center";
+            }
+        }
+
+        // ===== TEMAS DE PIZARRA =====
+        function applyTheme(theme) {
+            currentTheme = theme;
+            localStorage.setItem('boardTheme', theme);
+            document.documentElement.setAttribute('data-theme', theme);
+
+            container.classList.remove('board-light', 'board-chalk-green', 'board-chalk-black');
+            const hintCard = document.getElementById('hint-card');
+            hintCard.classList.remove('bg-white/80', 'border-slate-200', 'bg-black/30', 'border-white/20');
+
+            if (theme === 'light') {
+                container.classList.add('board-light');
+                hintCard.classList.add('bg-white/80', 'border-slate-200');
+            } else if (theme === 'chalk-green') {
+                container.classList.add('board-chalk-green');
+                hintCard.classList.add('bg-black/30', 'border-white/20');
+            } else if (theme === 'chalk-black') {
+                container.classList.add('board-chalk-black');
+                hintCard.classList.add('bg-black/40', 'border-white/20');
+            }
+
+            ['btn-theme-light','btn-theme-green','btn-theme-black'].forEach(id => {
+                document.getElementById(id).classList.remove('ring-2','ring-white');
+            });
+            const activeMap = {'light':'btn-theme-light','chalk-green':'btn-theme-green','chalk-black':'btn-theme-black'};
+            document.getElementById(activeMap[theme]).classList.add('ring-2','ring-white');
+
+            redrawAll();
+        }
+
+        document.getElementById('btn-theme-light').addEventListener('click', () => applyTheme('light'));
+        document.getElementById('btn-theme-green').addEventListener('click', () => applyTheme('chalk-green'));
+        document.getElementById('btn-theme-black').addEventListener('click', () => applyTheme('chalk-black'));
+
+        // ===== SELECTOR DE SECCIÓN =====
+        function renderSectionGrid() {
+            const grid = document.getElementById('section-grid');
+            grid.innerHTML = Object.entries(SECTIONS).map(([key, sec]) => `
+                <button onclick="selectSection('${key}')" class="section-pill ${key === currentSection ? 'active' : 'bg-slate-50 hover:bg-slate-100 text-slate-700'} flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-slate-200 font-comic font-bold transition-all">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br ${sec.color} flex items-center justify-center text-white shadow-md">
+                        <i data-lucide="${sec.icon}" class="w-6 h-6"></i>
+                    </div>
+                    <span class="text-sm md:text-base">${sec.label}</span>
+                </button>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        window.selectSection = function(key) {
+            currentSection = key;
+            localStorage.setItem('mathSection', key);
+            document.getElementById('current-section-label').innerText = SECTIONS[key].label;
+            document.getElementById('hint-section-text').innerText = `Sección actual: ${SECTIONS[key].label}`;
+            closeSectionModal();
+        };
+
+        document.getElementById('btn-section').addEventListener('click', () => {
+            renderSectionGrid();
+            document.getElementById('section-modal').classList.remove('hidden');
+        });
+
+        window.closeSectionModal = function() {
+            document.getElementById('section-modal').classList.add('hidden');
+        };
+
+        // ===== LÓGICA DE INTELIGENCIA ARTIFICIAL =====
+        // La API key vive como variable de entorno en Netlify (GEMINI_API_KEY).
+        // El frontend solo le habla a /api/solve, que es la Netlify Function.
+        btnSolve.addEventListener('click', async () => {
+            if (lines.length === 0) return;
+
+            isProcessing = true;
+            updateUIState();
+            solveSpinner.classList.remove('hidden');
+            solveIcon.classList.add('hidden');
+            solveText.innerText = "Pensando como el profe...";
+
+            try {
+                // Imagen blanca con trazo negro para mejor lectura del modelo,
+                // sin importar el tema visual de la pizarra.
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = canvas.height;
+                const tCtx = tempCanvas.getContext('2d');
+
+                tCtx.fillStyle = '#ffffff';
+                tCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+                tCtx.lineCap = 'round';
+                tCtx.lineJoin = 'round';
+
+                lines.forEach(line => {
+                    if (line.points.length < 2) return;
+                    if (line.tool === 'eraser') return;
+                    tCtx.beginPath();
+                    tCtx.moveTo(line.points[0].x, line.points[0].y);
+                    for (let i = 1; i < line.points.length; i++) {
+                        tCtx.lineTo(line.points[i].x, line.points[i].y);
+                    }
+                    tCtx.strokeStyle = '#000000';
+                    tCtx.lineWidth = 6;
+                    tCtx.stroke();
+                });
+
+                const base64Image = tempCanvas.toDataURL('image/png').split(',')[1];
+                const solution = await fetchSolution(base64Image, currentSection);
+                renderSolutionOverlay(solution);
+
+            } catch (err) {
+                console.error(err);
+                let msg = "Uy chiquillos, hubo un problema leyendo la pizarra. ";
+                const m = String(err.message || '');
+                if (m.includes('500')) {
+                    msg += "El servidor no tiene la API key configurada. Avisa al profe responsable.";
+                } else if (m.includes('401') || m.includes('403')) {
+                    msg += "La API key del servidor no es válida. Hay que renovarla.";
+                } else if (m.includes('429')) {
+                    msg += "Mucho tráfico ahora mismo. Espera unos segundos e intenta de nuevo.";
+                } else if (m.includes('413')) {
+                    msg += "La imagen quedó muy grande. Borra un poco y vuelve a intentar.";
+                } else {
+                    msg += "Trata de escribirlo más claro o vuelve a intentarlo.";
+                }
+                alert(msg);
+            } finally {
+                isProcessing = false;
+                solveSpinner.classList.add('hidden');
+                solveIcon.classList.remove('hidden');
+                solveText.innerText = "¡Resolver Ejercicio!";
+                updateUIState();
+            }
+        });
+
+        async function fetchSolution(base64Image, sectionKey) {
+            const retries = [1000, 2000, 4000];
+            for (let attempt = 0; attempt <= retries.length; attempt++) {
+                try {
+                    const response = await fetch('/api/solve', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ base64Image, sectionKey })
+                    });
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const text = await response.text();
+                    if (!text) throw new Error("Respuesta vacía");
+                    return JSON.parse(text);
+                } catch (err) {
+                    if (attempt === retries.length) throw err;
+                    await new Promise(res => setTimeout(res, retries[attempt]));
+                }
+            }
+        }
+
+        // ===== RENDERIZADO DE LA SOLUCIÓN =====
+        window.toggleExplicacion = function(index) {
+            const explDiv = document.getElementById(`expl-${index}`);
+            const btnIcon = document.getElementById(`btn-icon-${index}`);
+            if (explDiv.classList.contains('hidden')) {
+                explDiv.classList.remove('hidden');
+                btnIcon.setAttribute('data-lucide', 'chevron-up');
+            } else {
+                explDiv.classList.add('hidden');
+                btnIcon.setAttribute('data-lucide', 'lightbulb');
+            }
+            lucide.createIcons();
+        };
+
+        window.cerrarSolucion = function() {
+            solutionOverlay.classList.add('hidden');
+        };
+
+        function renderSolutionOverlay(data) {
+            const renderMath = (tex) => {
+                try {
+                    return katex.renderToString(tex || '', { throwOnError: false, displayMode: true });
+                } catch (e) {
+                    return tex;
+                }
+            };
+
+            const seccion = SECTIONS[currentSection];
+
+            let pasosHtml = data.pasos.map((paso, index) => `
+                <div class="mb-8 flex flex-col items-start w-full relative">
+                    <div class="absolute -left-10 top-2 text-indigo-300 font-bold text-2xl font-comic opacity-50 hidden md:block">#${index + 1}</div>
+                    <div class="flex flex-col md:flex-row md:items-center gap-4 w-full">
+                        <div class="py-2 px-6 bg-white rounded-xl shadow-sm border border-slate-100 inline-block overflow-x-auto min-w-[200px]">
+                            ${renderMath(paso.calculoMatematico)}
+                        </div>
+                        <button onclick="toggleExplicacion(${index})" class="flex items-center gap-2 text-sm md:text-base font-bold bg-amber-100 hover:bg-amber-200 text-amber-700 px-4 py-2 rounded-full transition-all shadow-sm border border-amber-200 shrink-0">
+                            <i id="btn-icon-${index}" data-lucide="lightbulb" class="w-5 h-5"></i>
+                            ¿Qué hizo el profe?
+                        </button>
+                    </div>
+                    <div id="expl-${index}" class="hidden mt-4 w-full max-w-3xl">
+                        <div class="relative bg-amber-50/95 backdrop-blur border-2 border-amber-300 text-slate-700 p-5 rounded-2xl rounded-tl-none font-comic text-lg md:text-xl leading-relaxed shadow-inner">
+                            <div class="absolute -top-3 left-6 w-5 h-5 bg-amber-50 border-t-2 border-l-2 border-amber-300 transform rotate-45"></div>
+                            <div class="mb-3 inline-flex items-center gap-2 bg-indigo-100 text-indigo-800 text-sm md:text-base font-bold px-3 py-1.5 rounded-lg border border-indigo-200 shadow-sm font-sans">
+                                <i data-lucide="book-marked" class="w-4 h-4"></i>
+                                ${paso.propiedadFormal || 'Regla u Operación'}
+                            </div>
+                            <span class="font-bold text-amber-600 block mb-1">El profe explica:</span>
+                            ${paso.explicacion}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            solutionOverlay.innerHTML = `
+                <div class="max-w-4xl mx-auto pt-24 pb-20 relative">
+                    <button onclick="cerrarSolucion()" class="absolute top-4 right-0 md:-right-8 flex items-center gap-2 bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-xl font-bold font-comic transition-all z-40">
+                        <i data-lucide="x" class="w-5 h-5"></i> Volver a la pizarra
+                    </button>
+                    <div class="mb-4 text-center">
+                        <span class="inline-block px-4 py-1.5 bg-gradient-to-r ${seccion.color} text-white rounded-full text-sm font-bold font-comic shadow-md">
+                            Sección: ${seccion.label}
+                        </span>
+                    </div>
+                    <div class="mb-10 text-center">
+                        <p class="text-slate-400 font-comic mb-2 text-lg">Ejercicio transcrito:</p>
+                        <div class="text-indigo-600 font-bold border-b-4 border-indigo-200 pb-4 inline-block px-8 overflow-x-auto">
+                            ${renderMath(data.ecuacionTranscrita)}
+                        </div>
+                    </div>
+                    <div class="space-y-4 pl-2 md:pl-10">
+                        ${pasosHtml}
+                    </div>
+                    <div class="mt-16 text-center">
+                        <div class="inline-block relative">
+                            <div class="absolute -inset-2 bg-green-200 rounded-3xl blur-lg opacity-60"></div>
+                            <div class="relative bg-green-100 border-4 border-green-400 p-8 rounded-3xl shadow-xl transform rotate-1 hover:rotate-0 transition-transform">
+                                <span class="text-green-700 font-bold block mb-2 font-comic text-2xl">¡Resultado Final, chiquillos! 🎉</span>
+                                <div class="text-green-900 tracking-wider">
+                                    ${renderMath(data.resultadoFinal)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            solutionOverlay.classList.remove('hidden');
+            solutionOverlay.scrollTop = 0;
+            lucide.createIcons();
+        }
+
+        // ===== INICIALIZACIÓN =====
+        document.getElementById('current-section-label').innerText = SECTIONS[currentSection].label;
+        document.getElementById('hint-section-text').innerText = `Sección actual: ${SECTIONS[currentSection].label}`;
+        applyTheme(currentTheme);
+        resizeCanvas();
+        updateUIState();
+
+        // Si no hay API key al cargar, no abrimos el modal automáticamente para no asustar.
+        // Pero al primer click de "Resolver" se le pedirá.
+    </script>
+</body>
+</html>

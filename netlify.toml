@@ -1,0 +1,13 @@
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+# Atajo amigable: /api/solve  ->  /.netlify/functions/solve
+[[redirects]]
+  from = "/api/solve"
+  to = "/.netlify/functions/solve"
+  status = 200
+  force = true
