@@ -780,9 +780,13 @@
                 emptyCanvasHint.classList.add('hidden');
             }
 
-            if (lines.length > 0 && !isProcessing) {
+            const inCooldown = Date.now() < cooldownUntil;
+            if (lines.length > 0 && !isProcessing && !inCooldown) {
                 btnSolve.disabled = false;
                 btnSolve.className = "flex items-center gap-2 px-6 py-3 rounded-xl font-bold font-comic text-lg shadow-sm transition-all bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-lg hover:-translate-y-1 justify-center";
+            } else if (inCooldown) {
+                btnSolve.disabled = true;
+                btnSolve.className = "flex items-center gap-2 px-6 py-3 rounded-xl font-bold font-comic text-lg shadow-sm transition-all bg-amber-300 text-amber-900 cursor-not-allowed justify-center";
             } else {
                 btnSolve.disabled = true;
                 btnSolve.className = "flex items-center gap-2 px-6 py-3 rounded-xl font-bold font-comic text-lg shadow-sm transition-all bg-slate-200 text-slate-400 cursor-not-allowed justify-center";
@@ -934,9 +938,33 @@
 
         btnSolve.addEventListener('click', () => triggerSolve());
 
+        let cooldownTickTimer = null;
+        function startCooldownDisplay() {
+            if (cooldownTickTimer) clearInterval(cooldownTickTimer);
+            const tick = () => {
+                const remaining = Math.ceil((cooldownUntil - Date.now()) / 1000);
+                if (remaining <= 0) {
+                    clearInterval(cooldownTickTimer);
+                    cooldownTickTimer = null;
+                    solveText.innerText = "¡Resolver Ejercicio!";
+                    updateUIState();
+                    return;
+                }
+                solveText.innerText = `Espera ${remaining}s (límite gratuito)`;
+            };
+            tick();
+            cooldownTickTimer = setInterval(tick, 1000);
+        }
+
         async function triggerSolve() {
             if (lines.length === 0) return;
             if (isProcessing) return;
+            if (Date.now() < cooldownUntil) {
+                // Bloqueado: ya estamos en cooldown por 429 reciente
+                const secs = Math.ceil((cooldownUntil - Date.now()) / 1000);
+                alert(`Aún en cooldown — espera ${secs} segundos. Llegamos al límite gratuito de Gemini (15 consultas/min).`);
+                return;
+            }
             cancelAutoSolve();
 
             isProcessing = true;
@@ -1001,8 +1029,10 @@
                 } else if (m.includes('401') || m.includes('403')) {
                     msg += "La API key del servidor no es válida. Hay que renovarla.";
                 } else if (m.includes('429')) {
-                    cooldownUntil = Date.now() + 60000; // 1 min de cooldown para auto-solve
-                    msg += "Llegamos al límite gratuito de Gemini (15 consultas por minuto). Espera 1 minuto e intenta de nuevo. El auto-resolver queda pausado un minuto para no empeorarlo.";
+                    cooldownUntil = Date.now() + 65000; // 65s para estar seguro tras un 429
+                    cancelAutoSolve();
+                    setTimeout(startCooldownDisplay, 50); // arranca el contador visible
+                    msg += "Llegamos al límite gratuito de Gemini (15 consultas/min). El botón queda bloqueado 1 minuto. Verás el contador en pantalla.";
                 } else if (m.includes('413')) {
                     msg += "La imagen quedó muy grande. Borra un poco y vuelve a intentar.";
                 } else {
@@ -1013,7 +1043,9 @@
                 isProcessing = false;
                 solveSpinner.classList.add('hidden');
                 solveIcon.classList.remove('hidden');
-                solveText.innerText = "¡Resolver Ejercicio!";
+                if (Date.now() >= cooldownUntil) {
+                    solveText.innerText = "¡Resolver Ejercicio!";
+                }
                 updateUIState();
             }
         }

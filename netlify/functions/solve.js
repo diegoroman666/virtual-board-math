@@ -203,7 +203,9 @@ exports.handler = async (event) => {
 
     const seccion = SECTIONS[sectionKey] || null;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    // gemini-2.5-flash-lite: 15 RPM gratis (vs 10 RPM del flash normal)
+    // Sigue siendo multimodal y bueno para mate + visión.
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
 
     const payload = {
         contents: [{
