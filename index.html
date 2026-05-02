@@ -582,9 +582,19 @@
         let autoSolveTimer = null;
         let autoSolveCountdownTimer = null;
         let lastSolvedLineCount = 0;
+        let lastSolvedSignature = ''; // huella del estado dibujado en la última resolución
         let autoSolveEnabled = (localStorage.getItem('autoSolve') ?? 'on') === 'on';
         const AUTO_SOLVE_DELAY_MS = 3000;
         let cooldownUntil = 0; // timestamp para evitar spam tras 429
+
+        // Cache de soluciones: huella del dibujo + sección → respuesta de Gemini
+        // Evita gastar peticiones cuando re-clickas o re-disparas con lo mismo
+        const solutionCache = new Map();
+
+        function computeLinesSignature() {
+            // Huella ligera: cantidad de trazos + total de puntos por trazo
+            return lines.map(l => `${l.tool}:${l.points.length}`).join('|');
+        }
 
         const canvas = document.getElementById('board');
         const ctx = canvas.getContext('2d');
@@ -908,7 +918,7 @@
             if (!autoSolveEnabled) return;
             if (isProcessing) return;
             if (lines.length === 0) return;
-            if (lines.length <= lastSolvedLineCount) return; // nada nuevo
+            if (computeLinesSignature() === lastSolvedSignature) return; // mismo dibujo
             if (Date.now() < cooldownUntil) return; // en cooldown por 429
 
             // Countdown visible en el botón
@@ -925,7 +935,7 @@
 
             autoSolveTimer = setTimeout(() => {
                 clearInterval(autoSolveCountdownTimer);
-                if (!isProcessing && lines.length > lastSolvedLineCount && Date.now() >= cooldownUntil) {
+                if (!isProcessing && computeLinesSignature() !== lastSolvedSignature && Date.now() >= cooldownUntil) {
                     triggerSolve();
                 }
             }, AUTO_SOLVE_DELAY_MS);
@@ -965,10 +975,20 @@
             if (Date.now() < cooldownUntil) {
                 // Bloqueado: ya estamos en cooldown por 429 reciente
                 const secs = Math.ceil((cooldownUntil - Date.now()) / 1000);
-                alert(`Aún en cooldown — espera ${secs} segundos. Llegamos al límite gratuito de Gemini (15 consultas/min).`);
+                alert(`Aún en cooldown — espera ${secs} segundos. Llegamos al límite gratuito de Gemini.`);
                 return;
             }
             cancelAutoSolve();
+
+            // Cache hit: si ya resolvimos exactamente este dibujo, reusamos sin llamar a Gemini
+            const sig = `${currentSection}::${computeLinesSignature()}`;
+            if (solutionCache.has(sig)) {
+                const cached = solutionCache.get(sig);
+                renderSolutionOverlay(cached, null);
+                lastSolvedSignature = computeLinesSignature();
+                lastSolvedLineCount = lines.length;
+                return;
+            }
 
             isProcessing = true;
             updateUIState();
@@ -1021,7 +1041,11 @@
                 }
 
                 renderSolutionOverlay(solution, seccionDetectadaCambio);
-                lastSolvedLineCount = lines.length; // marca que esto ya se resolvió
+                lastSolvedLineCount = lines.length;
+                lastSolvedSignature = computeLinesSignature();
+                // Guarda en cache para que reclics no quemen quota
+                const cacheKey = `${currentSection}::${lastSolvedSignature}`;
+                solutionCache.set(cacheKey, solution);
 
             } catch (err) {
                 console.error(err);
@@ -1035,7 +1059,7 @@
                     cooldownUntil = Date.now() + 65000; // 65s para estar seguro tras un 429
                     cancelAutoSolve();
                     setTimeout(startCooldownDisplay, 50); // arranca el contador visible
-                    msg += "Llegamos al límite gratuito de Gemini (15 consultas/min). El botón queda bloqueado 1 minuto. Verás el contador en pantalla.";
+                    msg += "Llegamos al límite gratuito de Gemini (30 consultas/min en este modelo). El botón queda bloqueado 1 minuto. Verás el contador en pantalla. Tip: si re-clickas con el mismo dibujo, ahora se reusa la respuesta en cache sin gastar cuota.";
                 } else if (m.includes('413')) {
                     msg += "La imagen quedó muy grande. Borra un poco y vuelve a intentar.";
                 } else {

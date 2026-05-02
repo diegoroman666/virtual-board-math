@@ -293,9 +293,9 @@ exports.handler = async (event) => {
 
     const seccion = SECTIONS[sectionKey] || null;
 
-    // gemini-2.5-flash-lite: 15 RPM gratis (vs 10 RPM del flash normal)
-    // Sigue siendo multimodal y bueno para mate + visión.
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
+    // gemini-2.0-flash-lite: 30 RPM gratis (vs 15 del 2.5-flash-lite o 10 del 2.5-flash)
+    // El doble de capacidad y sigue siendo multimodal y bueno para mate + visión.
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`;
 
     const payload = {
         contents: [{
