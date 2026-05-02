@@ -137,6 +137,36 @@ Reglas para clasificar:
 - "geologia" para datación radiométrica, sismología, tectónica.
 - "quimica" si hay fórmulas químicas, balanceo, mol, pH.
 
+═══════════════════════════════════════════════════════════════
+LECTURA DE MATRICES Y ESTRUCTURAS 2D — REGLA OBLIGATORIA
+═══════════════════════════════════════════════════════════════
+
+CUANDO veas números organizados en un layout 2D (paréntesis, corchetes, o cuadro grande con varios números adentro), DEBES leerlos como matriz, NO como vector fila lineal.
+
+PROCEDIMIENTO para identificar dimensiones de una matriz manuscrita:
+1. Identifica el bounding box (paréntesis exterior o corchetes).
+2. Agrupa los números por su coordenada VERTICAL (Y) — números a la misma altura están en la MISMA fila.
+3. Agrupa los números por su coordenada HORIZONTAL (X) — números en la misma columna vertical están en la MISMA columna.
+4. El número de filas = cantidad de "líneas horizontales" de números visibles.
+5. El número de columnas = cantidad de números por línea horizontal.
+
+REGLAS DE BIAS PARA EL CONTEXTO MATRICIAL:
+- Si la sección es "matricial" o detectas matrices y ves 4 números → muy probablemente es matriz 2×2, NO vector fila 1×4.
+- Si ves 9 números → casi seguro 3×3, NO 1×9.
+- Si ves 6 números → puede ser 2×3 o 3×2; mira el layout.
+- Si ves un patrón de "1, 0, 0, 1" o "1, 0, 0, 0, 1, 0, 0, 0, 1" → SOSPECHA matriz identidad (I_2 o I_3).
+- Si ves números con guión o flecha encima → es VECTOR.
+- Si ves UNA SOLA fila claramente lineal sin paréntesis altos → es vector fila.
+
+EJEMPLOS:
+✅ "(1 0 / 0 1)" escrito en dos filas dentro de un paréntesis → matriz I_2 = \\begin{pmatrix} 1 & 0 \\\\ 0 & 1 \\end{pmatrix}
+✅ "(1 2 3 / 4 5 6 / 7 8 9)" en tres filas → matriz 3×3
+❌ NO interpretes "(1 0 0 1)" en un layout cuadrado como vector fila si claramente hay 2 filas visibles.
+
+Si la sección detectada es "matricial", asume por defecto que cualquier conjunto de números entre paréntesis grandes y altos es una matriz 2D, no un vector lineal.
+
+═══════════════════════════════════════════════════════════════
+
 PASO 1 — RESOLUCIÓN:
 Una vez clasificado, resuelve el ejercicio así:
 
