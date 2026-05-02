@@ -321,10 +321,19 @@ exports.handler = async (event) => {
         if (!response.ok) {
             const errText = await response.text();
             console.error('Gemini error:', response.status, errText);
+            // Expone la primera linea del error real para diagnostico
+            let detail = '';
+            try {
+                const errJson = JSON.parse(errText);
+                detail = errJson?.error?.message || errJson?.error?.status || '';
+            } catch (e) {}
             return {
                 statusCode: response.status,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ error: `Gemini API error ${response.status}` })
+                body: JSON.stringify({
+                    error: `Gemini API error ${response.status}`,
+                    detail: detail.slice(0, 500)
+                })
             };
         }
 
