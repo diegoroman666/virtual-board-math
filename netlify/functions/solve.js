@@ -293,9 +293,14 @@ exports.handler = async (event) => {
 
     const seccion = SECTIONS[sectionKey] || null;
 
-    // gemini-2.0-flash-lite: 30 RPM gratis (vs 15 del 2.5-flash-lite o 10 del 2.5-flash)
-    // El doble de capacidad y sigue siendo multimodal y bueno para mate + visión.
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`;
+    // Cadena de fallback: si un modelo se queda sin cuota gratuita o falla,
+    // intenta con el siguiente automaticamente. Asi siempre hay alternativa.
+    const MODELS = [
+        'gemini-2.5-flash-lite', // 1ra opcion: buena calidad, cuota razonable
+        'gemini-2.5-flash',      // 2da: mas potente
+        'gemini-2.0-flash',      // 3ra: backup estable
+        'gemini-flash-latest'    // 4ta: alias al ultimo flash disponible
+    ];
 
     const payload = {
         contents: [{
@@ -311,56 +316,64 @@ exports.handler = async (event) => {
         }
     };
 
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
+    let lastError = { status: 500, detail: '' };
 
-        if (!response.ok) {
+    for (const model of MODELS) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!jsonText) {
+                    lastError = { status: 502, detail: 'Respuesta vacía del modelo' };
+                    continue; // intenta el siguiente
+                }
+                return {
+                    statusCode: 200,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-store',
+                        'X-Model-Used': model
+                    },
+                    body: jsonText
+                };
+            }
+
+            // Error: lee el detalle y decide si cambiar de modelo
             const errText = await response.text();
-            console.error('Gemini error:', response.status, errText);
-            // Expone la primera linea del error real para diagnostico
             let detail = '';
             try {
                 const errJson = JSON.parse(errText);
                 detail = errJson?.error?.message || errJson?.error?.status || '';
             } catch (e) {}
-            return {
-                statusCode: response.status,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    error: `Gemini API error ${response.status}`,
-                    detail: detail.slice(0, 500)
-                })
-            };
-        }
+            console.error(`Gemini error (${model}):`, response.status, detail.slice(0, 200));
+            lastError = { status: response.status, detail: detail.slice(0, 500) };
 
-        const data = await response.json();
-        const jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (!jsonText) {
-            return {
-                statusCode: 502,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ error: 'Respuesta vacía del modelo' })
-            };
+            // Si es 429 (cuota) o 404 (modelo no existe), prueba el siguiente
+            if (response.status === 429 || response.status === 404 || response.status === 403) {
+                continue;
+            }
+            // Otros errores (400 = prompt mal formado, 500 = server side) son del modelo,
+            // no vale la pena cambiar de modelo
+            break;
+        } catch (err) {
+            console.error(`Network error (${model}):`, err.message);
+            lastError = { status: 500, detail: err.message };
         }
-
-        return {
-            statusCode: 200,
-            headers: {
-                'Content-Type': 'application/json',
-                'Cache-Control': 'no-store'
-            },
-            body: jsonText
-        };
-    } catch (err) {
-        console.error('Function error:', err);
-        return {
-            statusCode: 500,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ error: 'Error interno' })
-        };
     }
+
+    return {
+        statusCode: lastError.status,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            error: `Gemini API error ${lastError.status}`,
+            detail: lastError.detail
+        })
+    };
 };
