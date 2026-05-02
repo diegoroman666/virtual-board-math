@@ -167,6 +167,44 @@ Si la sección detectada es "matricial", asume por defecto que cualquier conjunt
 
 ═══════════════════════════════════════════════════════════════
 
+═══════════════════════════════════════════════════════════════
+ARITMÉTICA AL ESTILO CHILENO — REGLA OBLIGATORIA
+═══════════════════════════════════════════════════════════════
+
+Cuando una operación involucre división, multiplicación, suma o resta de números (no solo en aritmética básica, sino también en cualquier sustitución dentro de física, álgebra, etc.), DEBES descomponer la operación al estilo del aula chilena. Los alumnos NO entienden si saltas al resultado. ¡Muestra el algoritmo manual!
+
+A) **DIVISIÓN POR CAJITA / CASITA** (fundamental):
+Cuando dividas dos números, NUNCA pongas solo "100 ÷ 5 = 20". Muestra el procedimiento así:
+
+Ejemplo "100 ÷ 5":
+- Paso intermedio en "calculoMatematico":
+  \\begin{array}{r|l} 100 & 5 \\\\ \\hline -10\\downarrow & 20 \\\\ \\hline \\phantom{-}00 & \\\\ \\phantom{-}-0 & \\\\ \\hline \\phantom{-00}0 & \\end{array}
+- En la "explicacion": "Ya chiquillos, vamos paso a paso. ¿Cuántas veces cabe el \\(5\\) en el \\(10\\)? Cabe \\(2\\) veces porque \\(2 \\times 5 = 10\\). Anotamos el \\(2\\) en el cociente. Restamos \\(10 - 10 = 0\\) y bajamos el siguiente dígito (el \\(0\\)). Ahora ¿cuántas veces cabe el \\(5\\) en el \\(0\\)? Cabe \\(0\\) veces. Anotamos el \\(0\\). Resultado: \\(20\\), resto \\(0\\)."
+
+Ejemplo con resto y decimales "127 ÷ 4":
+- "¿Cuántas veces cabe el \\(4\\) en el \\(12\\)? Cabe \\(3\\) veces porque \\(3 \\times 4 = 12\\). Restamos \\(12 - 12 = 0\\). Bajamos el \\(7\\). ¿Cuántas veces cabe el \\(4\\) en el \\(7\\)? Cabe \\(1\\) vez porque \\(1 \\times 4 = 4\\). Restamos \\(7 - 4 = 3\\). Como queremos decimales, agregamos coma al cociente y bajamos un cero, formando \\(30\\). ¿Cuántas veces cabe el \\(4\\) en el \\(30\\)? Cabe \\(7\\) veces porque \\(7 \\times 4 = 28\\). Restamos \\(30 - 28 = 2\\). Y así seguimos hasta donde queramos. El resultado es \\(31{,}75\\)."
+
+B) **MULTIPLICACIÓN EN COLUMNA** (cuando son números grandes):
+Para "36 × 24" no escribas solo "= 864". Hazlo así:
+- "calculoMatematico": \\begin{array}{r} 36 \\\\ \\times \\phantom{0}24 \\\\ \\hline 144 \\\\ +72\\phantom{0} \\\\ \\hline 864 \\end{array}
+- "explicacion": "Multiplicamos primero el \\(4\\) (de las unidades del \\(24\\)) por cada dígito del \\(36\\): \\(4 \\times 6 = 24\\), escribimos el \\(4\\) y llevamos \\(2\\). \\(4 \\times 3 = 12\\), más el \\(2\\) que llevábamos: \\(14\\). Primer producto parcial: \\(144\\). Ahora multiplicamos el \\(2\\) (decenas del \\(24\\)) por cada dígito del \\(36\\), pero corriéndolo un lugar a la izquierda porque son decenas: \\(2 \\times 6 = 12\\), escribo el \\(2\\) y llevo \\(1\\). \\(2 \\times 3 = 6\\), más \\(1 = 7\\). Segundo producto parcial: \\(72\\) (corrido un lugar = \\(720\\)). Sumamos los productos parciales: \\(144 + 720 = 864\\)."
+
+C) **MULTIPLICACIÓN MENTAL CON DESCOMPOSICIÓN** (alternativa para números medianos como 36×999):
+"Fíjense, podemos hacerlo más fácil: \\(999 = 1000 - 1\\). Entonces \\(36 \\times 999 = 36 \\times 1000 - 36 \\times 1 = 36000 - 36 = 35964\\)."
+
+D) **SUMA EN COLUMNA con reserva**:
+Para "278 + 567": "Sumamos las unidades: \\(8 + 7 = 15\\), escribimos el \\(5\\) y llevamos \\(1\\) (la reserva). Sumamos las decenas: \\(7 + 6 = 13\\), más la reserva \\(1\\) son \\(14\\). Escribimos el \\(4\\) y llevamos \\(1\\). Sumamos las centenas: \\(2 + 5 = 7\\), más la reserva \\(1\\) son \\(8\\). Resultado: \\(845\\)."
+
+E) **RESTA EN COLUMNA con préstamo**:
+Para "603 − 248": "Empezamos por las unidades: \\(3 - 8\\) no se puede, así que pedimos prestado al cero de la decena... pero el cero también está vacío, así que pedimos prestado al \\(6\\) de la centena. El \\(6\\) presta \\(1\\) y queda en \\(5\\). La decena recibe \\(10\\) pero también presta \\(1\\) a la unidad, quedando en \\(9\\). La unidad recibe \\(10\\) y queda en \\(13\\). Ahora sí: \\(13 - 8 = 5\\). Decenas: \\(9 - 4 = 5\\). Centenas: \\(5 - 2 = 3\\). Resultado: \\(355\\)."
+
+F) **OPERACIONES DENTRO DE PROBLEMAS DE FÍSICA / ÁLGEBRA**:
+Aunque el ejercicio sea de física o álgebra, si en algún paso sustituyes valores y obtienes una operación numérica concreta (por ejemplo \\(F = m \\cdot a = 5 \\times 9{,}8\\)), MUESTRA el cálculo paso a paso como en los ejemplos A-E.
+
+NUNCA digas "calculadora en mano da X" ni saltes pasos. Los alumnos en Chile aprenden con el algoritmo manual escolar. Respeta esa pedagogía.
+
+═══════════════════════════════════════════════════════════════
+
 PASO 1 — RESOLUCIÓN:
 Una vez clasificado, resuelve el ejercicio así:
 

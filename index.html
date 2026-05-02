@@ -14,31 +14,31 @@
     <style>
         :root {
             --bg-board: #ffffff;
-            --grid-color: #e2e8f0;
-            --stroke-color: #1e293b;
+            --grid-color: #cbd5e1;
+            --stroke-color: #0f172a;
             --eraser-color: #ffffff;
-            --hint-color: #94a3b8;
+            --hint-color: #64748b;
             --header-bg: #4f46e5;
             --header-text: #ffffff;
         }
 
         html[data-theme="chalk-green"] {
-            --bg-board: #0d3b2c;
-            --grid-color: rgba(255,255,255,0.06);
-            --stroke-color: #f5f5dc;
-            --eraser-color: #0d3b2c;
-            --hint-color: rgba(245,245,220,0.4);
-            --header-bg: #062018;
-            --header-text: #f5f5dc;
+            --bg-board: #1f6b4f;
+            --grid-color: rgba(255,255,255,0.10);
+            --stroke-color: #fffef0;
+            --eraser-color: #1f6b4f;
+            --hint-color: rgba(255,254,240,0.7);
+            --header-bg: #0c4a32;
+            --header-text: #fffef0;
         }
 
         html[data-theme="chalk-black"] {
-            --bg-board: #141414;
-            --grid-color: rgba(255,255,255,0.05);
+            --bg-board: #2a2a2a;
+            --grid-color: rgba(255,255,255,0.10);
             --stroke-color: #ffffff;
-            --eraser-color: #141414;
-            --hint-color: rgba(255,255,255,0.35);
-            --header-bg: #000000;
+            --eraser-color: #2a2a2a;
+            --hint-color: rgba(255,255,255,0.65);
+            --header-bg: #111111;
             --header-text: #ffffff;
         }
 
@@ -65,52 +65,49 @@
             cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><rect x='4' y='14' width='22' height='10' rx='2' fill='%23f472b6' stroke='%23831843' stroke-width='1.2' transform='rotate(-15 15 19)'/><rect x='4' y='14' width='22' height='4' fill='%23fbcfe8' transform='rotate(-15 15 19)'/></svg>") 6 24, crosshair;
         }
 
-        /* ======= MARCO DE MADERA ESTILO AULA ======= */
+        /* ======= MARCO DE MADERA ESTILO AULA (compacto) ======= */
         .frame-wood {
             position: relative;
             box-shadow:
-                inset 0 0 0 4px #1c0d05,
-                inset 0 0 0 12px #6b3f1a,
-                inset 0 0 0 14px #8b5a2b,
-                inset 0 0 0 22px #5c3a1f,
-                inset 0 0 0 26px #2a1810;
+                inset 0 0 0 2px #2a1810,
+                inset 0 0 0 8px #8b5a2b,
+                inset 0 0 0 12px #5c3a1f,
+                inset 0 0 0 14px #2a1810;
         }
         /* Tornillos decorativos en las esquinas */
         .frame-wood::before,
         .frame-wood::after {
             content: '';
             position: absolute;
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
-            background: radial-gradient(circle at 30% 30%, #d4d4d4, #525252 70%, #171717);
+            background: radial-gradient(circle at 30% 30%, #e2e2e2, #6b6b6b 70%, #2a2a2a);
             box-shadow: 0 1px 2px rgba(0,0,0,0.6);
             z-index: 5;
             pointer-events: none;
         }
-        .frame-wood::before { top: 8px; left: 8px; }
-        .frame-wood::after { top: 8px; right: 8px; }
-        /* Tornillos inferiores via spans (los agrego con JS) o usando un wrapper */
+        .frame-wood::before { top: 4px; left: 4px; }
+        .frame-wood::after { top: 4px; right: 4px; }
         .frame-wood-corner {
             position: absolute;
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
-            background: radial-gradient(circle at 30% 30%, #d4d4d4, #525252 70%, #171717);
+            background: radial-gradient(circle at 30% 30%, #e2e2e2, #6b6b6b 70%, #2a2a2a);
             box-shadow: 0 1px 2px rgba(0,0,0,0.6);
             z-index: 5;
             pointer-events: none;
         }
-        .frame-wood-corner.bl { bottom: 8px; left: 8px; }
-        .frame-wood-corner.br { bottom: 8px; right: 8px; }
+        .frame-wood-corner.bl { bottom: 4px; left: 4px; }
+        .frame-wood-corner.br { bottom: 4px; right: 4px; }
 
-        /* Frame para tema blanco: marco metalizado más sutil */
+        /* Frame para tema blanco: marco metalizado fino */
         .frame-metal {
             position: relative;
             box-shadow:
-                inset 0 0 0 3px #cbd5e1,
-                inset 0 0 0 8px #94a3b8,
-                inset 0 0 0 11px #64748b;
+                inset 0 0 0 2px #cbd5e1,
+                inset 0 0 0 5px #94a3b8;
         }
 
         /* Pizarra blanca con cuadricula escolar */
