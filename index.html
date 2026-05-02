@@ -8,6 +8,8 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <!-- Auto-render encuentra y renderiza LaTeX inline (\( \), $ $, \[ \]) en cualquier texto -->
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&family=Caveat:wght@400;700&family=Architects+Daughter&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -1183,6 +1185,25 @@
             solutionOverlay.classList.remove('hidden');
             solutionOverlay.scrollTop = 0;
             lucide.createIcons();
+
+            // Auto-renderizar LaTeX inline (\( ... \), \[ ... \], $ $) en TODAS las explicaciones.
+            // Esto garantiza que un "3^{5}" escrito en la explicación se vea como 3⁵ con superíndice real.
+            if (typeof renderMathInElement === 'function') {
+                try {
+                    renderMathInElement(solutionOverlay, {
+                        delimiters: [
+                            { left: '\\(', right: '\\)', display: false },
+                            { left: '\\[', right: '\\]', display: true },
+                            { left: '$$', right: '$$', display: true },
+                            { left: '$', right: '$', display: false }
+                        ],
+                        throwOnError: false,
+                        ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+                    });
+                } catch (e) {
+                    console.warn('Auto-render LaTeX falló:', e);
+                }
+            }
         }
 
         // ===== INICIALIZACIÓN =====
