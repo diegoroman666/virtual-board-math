@@ -307,20 +307,35 @@
         <!-- Toolbar flotante (siempre horizontal, scroll si es necesario) -->
         <div class="absolute top-4 left-1/2 -translate-x-1/2 flex flex-nowrap items-center justify-center gap-2 p-2 rounded-2xl bg-white/90 backdrop-blur shadow-lg z-20 border border-slate-200 overflow-x-auto max-w-[96vw] no-scrollbar">
             <div class="flex items-center gap-1">
-                <button id="btn-pen" class="p-3 rounded-xl transition-all bg-indigo-100 text-indigo-700 shadow-sm" title="Lápiz / Tiza">
-                    <i data-lucide="pen-tool" class="w-6 h-6"></i>
+                <button id="btn-pen" class="p-2.5 rounded-xl transition-all bg-indigo-100 text-indigo-700 shadow-sm shrink-0" title="Lápiz / Tiza">
+                    <i data-lucide="pen-tool" class="w-5 h-5"></i>
                 </button>
-                <button id="btn-eraser" class="p-3 rounded-xl transition-all text-slate-500 hover:bg-slate-100" title="Goma de borrar">
-                    <i data-lucide="eraser" class="w-6 h-6"></i>
+                <button id="btn-eraser" class="p-2.5 rounded-xl transition-all text-slate-500 hover:bg-slate-100 shrink-0" title="Goma de borrar">
+                    <i data-lucide="eraser" class="w-5 h-5"></i>
+                </button>
+                <button id="btn-pan" class="p-2.5 rounded-xl transition-all text-slate-500 hover:bg-slate-100 shrink-0" title="Mover (arrastrar canvas para tener más espacio)">
+                    <i data-lucide="hand" class="w-5 h-5"></i>
                 </button>
             </div>
             <div class="w-px h-8 bg-slate-200"></div>
             <div class="flex items-center gap-1">
-                <button id="btn-undo" class="p-3 text-slate-500 hover:bg-slate-100 rounded-xl transition-all" title="Deshacer">
-                    <i data-lucide="rotate-ccw" class="w-6 h-6"></i>
+                <button id="btn-zoom-out" class="p-2.5 rounded-xl transition-all text-slate-500 hover:bg-slate-100 shrink-0" title="Alejar (más espacio)">
+                    <i data-lucide="zoom-out" class="w-5 h-5"></i>
                 </button>
-                <button id="btn-clear" class="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-all" title="Borrar todo">
-                    <i data-lucide="trash-2" class="w-6 h-6"></i>
+                <button id="btn-zoom-in" class="p-2.5 rounded-xl transition-all text-slate-500 hover:bg-slate-100 shrink-0" title="Acercar">
+                    <i data-lucide="zoom-in" class="w-5 h-5"></i>
+                </button>
+                <button id="btn-zoom-reset" class="p-2.5 rounded-xl transition-all text-slate-500 hover:bg-slate-100 shrink-0" title="Tamaño original">
+                    <i data-lucide="maximize" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="w-px h-8 bg-slate-200"></div>
+            <div class="flex items-center gap-1">
+                <button id="btn-undo" class="p-2.5 text-slate-500 hover:bg-slate-100 rounded-xl transition-all shrink-0" title="Deshacer">
+                    <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+                </button>
+                <button id="btn-clear" class="p-2.5 text-red-500 hover:bg-red-50 rounded-xl transition-all shrink-0" title="Borrar todo">
+                    <i data-lucide="trash-2" class="w-5 h-5"></i>
                 </button>
             </div>
             <div class="w-px h-8 bg-slate-200 hidden md:block"></div>
@@ -676,6 +691,13 @@
         let tool = 'pen';
         let isProcessing = false;
 
+        // Vista (zoom + pan) del canvas
+        let viewZoom = 1;
+        let viewPanX = 0;
+        let viewPanY = 0;
+        let isPanning = false;
+        let panStart = null;
+
         // Auto-solve (debounce)
         let autoSolveTimer = null;
         let autoSolveCountdownTimer = null;
@@ -727,7 +749,11 @@
         window.addEventListener('resize', resizeCanvas);
 
         function redrawAll() {
+            // Limpiamos en coordenadas de pantalla
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Aplicamos transformación de vista (zoom + pan)
+            ctx.setTransform(viewZoom, 0, 0, viewZoom, viewPanX, viewPanY);
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
 
@@ -782,18 +808,54 @@
                 clientX = e.clientX;
                 clientY = e.clientY;
             }
+            // Convierte coords de pantalla a coords de "mundo" (compensando zoom/pan)
+            return {
+                x: (clientX - rect.left - viewPanX) / viewZoom,
+                y: (clientY - rect.top - viewPanY) / viewZoom
+            };
+        }
+
+        // Coords sin transformar (para pan)
+        function getRawPointerPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            let clientX, clientY;
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
             return { x: clientX - rect.left, y: clientY - rect.top };
         }
 
         function handleStart(e) {
             if (!solutionOverlay.classList.contains('hidden')) return;
             e.preventDefault();
+
+            // Modo pan: arrastrar el lienzo en vez de dibujar
+            if (tool === 'pan') {
+                isPanning = true;
+                panStart = getRawPointerPos(e);
+                panStart.startX = viewPanX;
+                panStart.startY = viewPanY;
+                return;
+            }
+
             isDrawing = true;
             currentLine = [getPointerPos(e)];
-            cancelAutoSolve(); // si estaba contando, lo paramos al dibujar de nuevo
+            cancelAutoSolve();
         }
 
         function handleMove(e) {
+            if (isPanning) {
+                e.preventDefault();
+                const p = getRawPointerPos(e);
+                viewPanX = panStart.startX + (p.x - panStart.x);
+                viewPanY = panStart.startY + (p.y - panStart.y);
+                redrawAll();
+                return;
+            }
             if (!isDrawing) return;
             e.preventDefault();
             currentLine.push(getPointerPos(e));
@@ -801,13 +863,17 @@
         }
 
         function handleEnd() {
+            if (isPanning) {
+                isPanning = false;
+                return;
+            }
             if (!isDrawing) return;
             isDrawing = false;
             if (currentLine.length > 0) {
                 lines.push({ points: currentLine, tool });
                 currentLine = [];
                 redrawAll();
-                scheduleAutoSolve(); // dispara el debounce
+                scheduleAutoSolve();
             }
         }
 
@@ -821,30 +887,62 @@
         // ===== HERRAMIENTAS =====
         function applyCursor() {
             container.classList.remove('cursor-pencil', 'cursor-chalk', 'cursor-marker', 'cursor-eraser');
+            container.style.cursor = '';
+            if (tool === 'pan') {
+                container.style.cursor = isPanning ? 'grabbing' : 'grab';
+                return;
+            }
             if (tool === 'eraser') {
                 container.classList.add('cursor-eraser');
                 return;
             }
-            // Cursor según tema
             if (currentTheme === 'light') container.classList.add('cursor-pencil');
             else if (currentTheme === 'chalk-green') container.classList.add('cursor-chalk');
-            else container.classList.add('cursor-marker'); // negra → plumón blanco
+            else container.classList.add('cursor-marker');
         }
 
         function setTool(newTool) {
             tool = newTool;
-            if (tool === 'pen') {
-                btnPen.className = "p-3 rounded-xl transition-all bg-indigo-100 text-indigo-700 shadow-sm";
-                btnEraser.className = "p-3 rounded-xl transition-all text-slate-500 hover:bg-slate-100";
-            } else {
-                btnEraser.className = "p-3 rounded-xl transition-all bg-indigo-100 text-indigo-700 shadow-sm";
-                btnPen.className = "p-3 rounded-xl transition-all text-slate-500 hover:bg-slate-100";
-            }
+            const active = "p-2.5 rounded-xl transition-all bg-indigo-100 text-indigo-700 shadow-sm shrink-0";
+            const idle = "p-2.5 rounded-xl transition-all text-slate-500 hover:bg-slate-100 shrink-0";
+            const btnPanRef = document.getElementById('btn-pan');
+            btnPen.className = (tool === 'pen') ? active : idle;
+            btnEraser.className = (tool === 'eraser') ? active : idle;
+            if (btnPanRef) btnPanRef.className = (tool === 'pan') ? active : idle;
             applyCursor();
         }
 
         btnPen.addEventListener('click', () => setTool('pen'));
         btnEraser.addEventListener('click', () => setTool('eraser'));
+        document.getElementById('btn-pan').addEventListener('click', () => setTool('pan'));
+
+        // Zoom in/out/reset del canvas
+        function zoomAt(factor, cx, cy) {
+            const newZoom = Math.max(0.3, Math.min(3, viewZoom * factor));
+            // Zoom centrado en (cx, cy) — por defecto centro del canvas
+            cx = cx ?? canvas.width / 2;
+            cy = cy ?? canvas.height / 2;
+            viewPanX = cx - (cx - viewPanX) * (newZoom / viewZoom);
+            viewPanY = cy - (cy - viewPanY) * (newZoom / viewZoom);
+            viewZoom = newZoom;
+            redrawAll();
+        }
+        document.getElementById('btn-zoom-in').addEventListener('click', () => zoomAt(1.25));
+        document.getElementById('btn-zoom-out').addEventListener('click', () => zoomAt(0.8));
+        document.getElementById('btn-zoom-reset').addEventListener('click', () => {
+            viewZoom = 1; viewPanX = 0; viewPanY = 0; redrawAll();
+        });
+
+        // Zoom con rueda del mouse + Ctrl
+        canvas.addEventListener('wheel', (e) => {
+            if (!e.ctrlKey && !e.metaKey) return;
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+            zoomAt(e.deltaY < 0 ? 1.1 : 0.9, mx, my);
+        }, { passive: false });
+
         btnUndo.addEventListener('click', () => {
             lines.pop();
             cancelAutoSolve();
@@ -853,6 +951,10 @@
         btnClear.addEventListener('click', () => {
             lines = [];
             lastSolvedLineCount = 0;
+            lastSolvedSignature = '';
+            viewZoom = 1;
+            viewPanX = 0;
+            viewPanY = 0;
             cancelAutoSolve();
             solutionOverlay.classList.add('hidden');
             solutionOverlay.innerHTML = '';
@@ -1128,11 +1230,27 @@
             solveText.innerText = "Pensando como el profe...";
 
             try {
-                // Imagen blanca con trazo negro para mejor lectura del modelo,
-                // sin importar el tema visual de la pizarra.
+                // Calculamos bounding box para incluir todo lo dibujado
+                // sin importar el zoom/pan que el usuario haya aplicado.
+                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                lines.forEach(l => {
+                    if (l.tool === 'eraser') return;
+                    l.points.forEach(p => {
+                        if (p.x < minX) minX = p.x;
+                        if (p.y < minY) minY = p.y;
+                        if (p.x > maxX) maxX = p.x;
+                        if (p.y > maxY) maxY = p.y;
+                    });
+                });
+                const padding = 60;
+                const bboxW = isFinite(minX) ? (maxX - minX) : canvas.width;
+                const bboxH = isFinite(minY) ? (maxY - minY) : canvas.height;
+                const offsetX = isFinite(minX) ? (-minX + padding) : 0;
+                const offsetY = isFinite(minY) ? (-minY + padding) : 0;
+
                 const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = canvas.width;
-                tempCanvas.height = canvas.height;
+                tempCanvas.width = Math.min(2400, Math.ceil(bboxW + padding * 2));
+                tempCanvas.height = Math.min(2400, Math.ceil(bboxH + padding * 2));
                 const tCtx = tempCanvas.getContext('2d');
 
                 tCtx.fillStyle = '#ffffff';
@@ -1144,9 +1262,9 @@
                     if (line.points.length < 2) return;
                     if (line.tool === 'eraser') return;
                     tCtx.beginPath();
-                    tCtx.moveTo(line.points[0].x, line.points[0].y);
+                    tCtx.moveTo(line.points[0].x + offsetX, line.points[0].y + offsetY);
                     for (let i = 1; i < line.points.length; i++) {
-                        tCtx.lineTo(line.points[i].x, line.points[i].y);
+                        tCtx.lineTo(line.points[i].x + offsetX, line.points[i].y + offsetY);
                     }
                     tCtx.strokeStyle = '#000000';
                     tCtx.lineWidth = 6;
