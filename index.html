@@ -1153,6 +1153,57 @@
             return text;
         }
 
+        // Sanitiza SVG generado por Gemini: quita scripts, eventos y elementos peligrosos.
+        // Mantiene solo etiquetas SVG estáticas seguras.
+        function sanitizeSvg(svgString) {
+            if (!svgString || typeof svgString !== 'string') return '';
+            const trimmed = svgString.trim();
+            if (!trimmed.startsWith('<svg')) return '';
+
+            const ALLOWED_TAGS = new Set([
+                'svg', 'g', 'defs', 'marker', 'title', 'desc',
+                'circle', 'ellipse', 'line', 'rect', 'path',
+                'polygon', 'polyline', 'text', 'tspan', 'use'
+            ]);
+
+            try {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(trimmed, 'image/svg+xml');
+                const root = doc.querySelector('svg');
+                if (!root || doc.querySelector('parsererror')) return '';
+
+                function clean(node) {
+                    if (node.nodeType !== 1) return;
+                    const tag = node.tagName.toLowerCase();
+                    if (!ALLOWED_TAGS.has(tag)) {
+                        node.remove();
+                        return;
+                    }
+                    [...node.attributes].forEach(attr => {
+                        const name = attr.name.toLowerCase();
+                        const value = attr.value || '';
+                        if (name.startsWith('on')) node.removeAttribute(attr.name);
+                        if ((name === 'href' || name === 'xlink:href') && value.trim().toLowerCase().startsWith('javascript:')) {
+                            node.removeAttribute(attr.name);
+                        }
+                    });
+                    [...node.children].forEach(clean);
+                }
+                clean(root);
+
+                root.setAttribute('width', '100%');
+                root.removeAttribute('height');
+                root.style.maxWidth = '500px';
+                root.style.height = 'auto';
+                root.style.display = 'block';
+                root.style.margin = '0 auto';
+                return root.outerHTML;
+            } catch (e) {
+                console.warn('SVG sanitize falló:', e);
+                return '';
+            }
+        }
+
         function renderSolutionOverlay(data, cambioSeccion) {
             const renderMath = (tex) => {
                 try {
@@ -1161,6 +1212,20 @@
                     return tex;
                 }
             };
+
+            // Diagrama si lo hay
+            const svgSafe = sanitizeSvg(data.diagrama);
+            const diagramaHtml = svgSafe ? `
+                <div class="mb-8 mx-auto max-w-2xl">
+                    <div class="bg-white border-2 border-slate-200 rounded-2xl p-4 md:p-6 shadow-sm">
+                        <div class="flex items-center gap-2 mb-3 text-slate-500">
+                            <i data-lucide="image" class="w-4 h-4"></i>
+                            <p class="text-xs font-comic uppercase tracking-wider">${data.diagramaTitulo || 'Diagrama'}</p>
+                        </div>
+                        <div class="overflow-x-auto">${svgSafe}</div>
+                    </div>
+                </div>
+            ` : '';
 
             const seccion = SECTIONS[currentSection];
 
@@ -1220,6 +1285,7 @@
                             ${renderMath(data.ecuacionTranscrita)}
                         </div>
                     </div>
+                    ${diagramaHtml}
                     <div class="space-y-4 pl-2 md:pl-10">
                         ${pasosHtml}
                     </div>

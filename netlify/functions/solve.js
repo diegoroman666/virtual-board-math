@@ -88,6 +88,14 @@ const RESPONSE_SCHEMA = {
             description: "La sección a la que MEJOR pertenece el ejercicio mostrado en la imagen."
         },
         ecuacionTranscrita: { type: "STRING" },
+        diagrama: {
+            type: "STRING",
+            description: "Código SVG del diagrama. Vacío si el ejercicio no requiere ilustración."
+        },
+        diagramaTitulo: {
+            type: "STRING",
+            description: "Título corto del diagrama. Vacío si no hay diagrama."
+        },
         pasos: {
             type: "ARRAY",
             items: {
@@ -202,6 +210,54 @@ F) **OPERACIONES DENTRO DE PROBLEMAS DE FÍSICA / ÁLGEBRA**:
 Aunque el ejercicio sea de física o álgebra, si en algún paso sustituyes valores y obtienes una operación numérica concreta (por ejemplo \\(F = m \\cdot a = 5 \\times 9{,}8\\)), MUESTRA el cálculo paso a paso como en los ejemplos A-E.
 
 NUNCA digas "calculadora en mano da X" ni saltes pasos. Los alumnos en Chile aprenden con el algoritmo manual escolar. Respeta esa pedagogía.
+
+═══════════════════════════════════════════════════════════════
+
+═══════════════════════════════════════════════════════════════
+DIAGRAMAS / ILUSTRACIONES SVG — CUÁNDO Y CÓMO
+═══════════════════════════════════════════════════════════════
+
+Si el ejercicio se beneficia de un diagrama, GENERA un código SVG limpio en el campo "diagrama" y un título en "diagramaTitulo". Si NO requiere diagrama, deja "diagrama" como string vacío "".
+
+USA DIAGRAMA cuando sea:
+- GEOMETRÍA: triángulos, polígonos, círculos, sólidos, distancias, ángulos, rectas, parábolas, cónicas, pirámides, prismas.
+- TRIGONOMETRÍA: triángulos rectángulos con catetos/hipotenusa, círculo unitario, ángulos en radianes.
+- FÍSICA: diagramas de cuerpo libre con fuerzas (vectores con flechas), planos inclinados, lanzamiento de proyectiles, circuitos eléctricos básicos, ondas.
+- VECTORES: en R² (suma, resta, producto punto/cruz visual).
+- FUNCIONES: gráfica de \\(f(x)\\) si el ejercicio lo pide.
+- CIRCUITOS y ESQUEMAS: resistencias en serie/paralelo, capacitores.
+- ASTRONOMÍA: órbitas elípticas, posiciones planetarias.
+- QUÍMICA: estructuras moleculares simples (no obligatorio).
+
+NO USES diagrama para:
+- Aritmética, álgebra, ecuaciones, derivadas, integrales puras (a menos que requieran graficar).
+- Computación cuántica formal (a menos que sea un circuito cuántico simple).
+
+REGLAS DEL SVG:
+1. Tamaño: \`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 350">\`
+2. Fondo: blanco implícito (no agregues rectángulo de fondo).
+3. Trazos: \`stroke="#1e293b"\` color oscuro, \`stroke-width="2"\`.
+4. Líneas auxiliares: \`stroke="#94a3b8"\` con \`stroke-dasharray="4,3"\`.
+5. Rellenos: \`fill="#dbeafe"\` (azul claro) o \`fill="none"\` para figuras.
+6. Texto/etiquetas: \`<text fill="#1e293b" font-size="14" font-family="sans-serif">\`. Usa puntos, longitudes, ángulos, vectores claramente etiquetados.
+7. Vectores con flechas: define un marcador en \`<defs>\`:
+   \`<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1e293b"/></marker></defs>\`
+   Luego: \`<line ... stroke="#1e293b" marker-end="url(#arrow)"/>\`.
+8. Triángulos rectángulos: dibuja el cuadradito del ángulo recto.
+9. Ángulos: arco con \`<path d="..."/>\` o un sector pequeño + etiqueta.
+10. NO uses \`<script>\`, NO uses \`onclick\`, NO uses \`<foreignObject>\`. Solo elementos SVG estáticos.
+11. NO uses HTML ni Markdown dentro del SVG. Solo etiquetas SVG válidas.
+
+EJEMPLO MÍNIMO (triángulo rectángulo 3-4-5):
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 350">
+  <polygon points="100,250 400,250 100,100" fill="#dbeafe" stroke="#1e293b" stroke-width="2"/>
+  <rect x="100" y="235" width="15" height="15" fill="none" stroke="#1e293b" stroke-width="1.5"/>
+  <text x="240" y="275" fill="#1e293b" font-size="16" font-family="sans-serif">4</text>
+  <text x="80" y="180" fill="#1e293b" font-size="16" font-family="sans-serif">3</text>
+  <text x="260" y="170" fill="#1e293b" font-size="16" font-family="sans-serif">5</text>
+</svg>
+
+Sé claro, ordenado y didáctico. El diagrama es una ayuda, no un adorno.
 
 ═══════════════════════════════════════════════════════════════
 
