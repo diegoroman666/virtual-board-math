@@ -110,6 +110,86 @@
                 inset 0 0 0 5px #94a3b8;
         }
 
+        /* ======= TARJETA DE DIAGRAMA con apariencia de pizarra ======= */
+        .diagrama-card {
+            border-radius: 1rem;
+            padding: 1.25rem;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.08), inset 0 0 0 1px rgba(255,255,255,0.05);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        /* Fondo y trazos según el tema activo */
+        html[data-theme="light"] .diagrama-card {
+            background: #fafaf9;
+            border: 2px solid #e2e8f0;
+        }
+        html[data-theme="light"] .diagrama-card .diagrama-title {
+            color: #64748b;
+        }
+        html[data-theme="light"] .diagrama-card svg {
+            color: #1e293b;
+        }
+
+        html[data-theme="chalk-green"] .diagrama-card {
+            background: linear-gradient(135deg, #1f6b4f 0%, #134d39 100%);
+            border: 2px solid #0c4a32;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4), inset 0 0 40px rgba(0,0,0,0.25);
+        }
+        html[data-theme="chalk-green"] .diagrama-card .diagrama-title {
+            color: rgba(255,254,240,0.65);
+        }
+        /* Re-coloreamos SVG en chalk-green: trazos a tiza, rellenos translúcidos */
+        html[data-theme="chalk-green"] .diagrama-card svg [stroke] { stroke: #fffef0 !important; }
+        html[data-theme="chalk-green"] .diagrama-card svg [fill]:not([fill="none"]) { fill: rgba(255,254,240,0.18) !important; }
+        html[data-theme="chalk-green"] .diagrama-card svg text { fill: #fffef0 !important; stroke: none !important; }
+        html[data-theme="chalk-green"] .diagrama-card svg path[fill="#1e293b"],
+        html[data-theme="chalk-green"] .diagrama-card svg [marker-end] { stroke: #fde68a !important; }
+
+        html[data-theme="chalk-black"] .diagrama-card {
+            background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+            border: 2px solid #0a0a0a;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.5), inset 0 0 40px rgba(0,0,0,0.4);
+        }
+        html[data-theme="chalk-black"] .diagrama-card .diagrama-title {
+            color: rgba(255,255,255,0.5);
+        }
+        html[data-theme="chalk-black"] .diagrama-card svg [stroke] { stroke: #ffffff !important; }
+        html[data-theme="chalk-black"] .diagrama-card svg [fill]:not([fill="none"]) { fill: rgba(255,255,255,0.12) !important; }
+        html[data-theme="chalk-black"] .diagrama-card svg text { fill: #ffffff !important; stroke: none !important; }
+
+        /* Filtro sketchy: ondulación tipo trazo a mano */
+        .diagrama-card svg .sketchy {
+            filter: url(#sketchyFilter);
+        }
+
+        /* Botón de zoom flotante */
+        .btn-zoom-diagrama {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            background: rgba(255,255,255,0.9);
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 0.4rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .btn-zoom-diagrama:hover { background: white; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+        html[data-theme="chalk-green"] .btn-zoom-diagrama,
+        html[data-theme="chalk-black"] .btn-zoom-diagrama {
+            background: rgba(255,255,255,0.15);
+            border-color: rgba(255,255,255,0.25);
+            color: #fff;
+        }
+        html[data-theme="chalk-green"] .btn-zoom-diagrama:hover,
+        html[data-theme="chalk-black"] .btn-zoom-diagrama:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
         /* Pizarra blanca con cuadricula escolar */
         .board-light {
             background-color: var(--bg-board);
@@ -173,6 +253,16 @@
     </style>
 </head>
 <body class="min-h-screen flex flex-col font-sans text-slate-800 m-0 p-0 overflow-hidden bg-slate-50">
+
+    <!-- Filtro SVG global para look "trazo a mano / tiza" -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+        <defs>
+            <filter id="sketchyFilter" x="-5%" y="-5%" width="110%" height="110%">
+                <feTurbulence type="fractalNoise" baseFrequency="0.022" numOctaves="2" seed="3"/>
+                <feDisplacementMap in="SourceGraphic" scale="2.2"/>
+            </filter>
+        </defs>
+    </svg>
 
     <!-- Header -->
     <header class="p-3 shadow-md flex flex-wrap items-center justify-between gap-3 z-20 shrink-0" style="background-color: var(--header-bg); color: var(--header-text);">
@@ -403,6 +493,17 @@
                     </p>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal: Zoom de diagrama -->
+    <div id="diagrama-zoom-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center modal-bg">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeDiagramaZoom()"></div>
+        <div class="relative bg-white rounded-3xl shadow-2xl max-w-5xl w-11/12 max-h-[92vh] overflow-auto p-4 md:p-8">
+            <button onclick="closeDiagramaZoom()" class="absolute top-3 right-3 z-10 p-2 bg-slate-100 hover:bg-slate-200 rounded-lg transition-all">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <div id="diagrama-zoom-content" class="w-full"></div>
         </div>
     </div>
 
@@ -896,12 +997,45 @@
             document.getElementById('about-modal').classList.add('hidden');
         };
 
+        // ===== ZOOM DEL DIAGRAMA =====
+        window.abrirDiagramaZoom = function() {
+            const svg = window.__lastDiagramaSvg;
+            if (!svg) return;
+            const title = window.__lastDiagramaTitulo || 'Diagrama';
+            const content = document.getElementById('diagrama-zoom-content');
+            // Wrappear con la misma diagrama-card para heredar estilos del tema
+            content.innerHTML = `
+                <div class="diagrama-card" style="max-width:none;">
+                    <div class="flex items-center gap-2 mb-3 diagrama-title">
+                        <i data-lucide="image" class="w-5 h-5"></i>
+                        <p class="text-base font-comic uppercase tracking-wider font-bold">${title}</p>
+                    </div>
+                    <div class="overflow-x-auto" style="max-width:100%;">
+                        ${svg.replace('max-width: 500px', 'max-width: 100%').replace('max-width:500px', 'max-width:100%')}
+                    </div>
+                </div>
+            `;
+            // Forzamos al SVG interno a ocupar todo
+            const innerSvg = content.querySelector('svg');
+            if (innerSvg) {
+                innerSvg.style.maxWidth = '100%';
+                innerSvg.style.width = '100%';
+                innerSvg.style.height = 'auto';
+            }
+            document.getElementById('diagrama-zoom-modal').classList.remove('hidden');
+            lucide.createIcons();
+        };
+        window.closeDiagramaZoom = function() {
+            document.getElementById('diagrama-zoom-modal').classList.add('hidden');
+        };
+
         // Cerrar modales con Escape
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 closeHistoryModal();
                 closeAboutModal();
                 closeSectionModal();
+                closeDiagramaZoom();
             }
         });
 
@@ -1197,6 +1331,16 @@
                 root.style.height = 'auto';
                 root.style.display = 'block';
                 root.style.margin = '0 auto';
+
+                // Aplica el filtro "sketchy" a los elementos de trazo (no al texto)
+                const drawTags = ['path', 'line', 'polygon', 'polyline', 'circle', 'ellipse', 'rect'];
+                drawTags.forEach(tag => {
+                    root.querySelectorAll(tag).forEach(el => {
+                        const existing = el.getAttribute('class') || '';
+                        el.setAttribute('class', (existing + ' sketchy').trim());
+                    });
+                });
+
                 return root.outerHTML;
             } catch (e) {
                 console.warn('SVG sanitize falló:', e);
@@ -1215,10 +1359,17 @@
 
             // Diagrama si lo hay
             const svgSafe = sanitizeSvg(data.diagrama);
+            // Guardamos el SVG en una variable global para el zoom
+            window.__lastDiagramaSvg = svgSafe;
+            window.__lastDiagramaTitulo = data.diagramaTitulo || 'Diagrama';
             const diagramaHtml = svgSafe ? `
                 <div class="mb-8 mx-auto max-w-2xl">
-                    <div class="bg-white border-2 border-slate-200 rounded-2xl p-4 md:p-6 shadow-sm">
-                        <div class="flex items-center gap-2 mb-3 text-slate-500">
+                    <div class="diagrama-card">
+                        <button class="btn-zoom-diagrama" onclick="abrirDiagramaZoom()" title="Ampliar diagrama">
+                            <i data-lucide="zoom-in" class="w-4 h-4"></i>
+                            <span class="text-xs font-bold font-comic">Zoom</span>
+                        </button>
+                        <div class="flex items-center gap-2 mb-3 diagrama-title">
                             <i data-lucide="image" class="w-4 h-4"></i>
                             <p class="text-xs font-comic uppercase tracking-wider">${data.diagramaTitulo || 'Diagrama'}</p>
                         </div>
