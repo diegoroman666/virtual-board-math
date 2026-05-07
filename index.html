@@ -199,26 +199,16 @@
             background-size: 30px 30px;
         }
 
-        /* Pizarra de tiza verde (con textura sutil) */
+        /* Pizarra de tiza verde — color solido, sin texturas que se vean en movil */
         .board-chalk-green {
             background-color: var(--bg-board);
-            background-image:
-                radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
-                radial-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-                linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(0,0,0,0.15) 100%);
-            background-size: 4px 4px, 7px 7px, 100% 100%;
-            background-position: 0 0, 2px 2px, 0 0;
+            background-image: none;
         }
 
-        /* Pizarra de tiza negra */
+        /* Pizarra de tiza negra — color solido */
         .board-chalk-black {
             background-color: var(--bg-board);
-            background-image:
-                radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
-                radial-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-                linear-gradient(135deg, rgba(255,255,255,0.015) 0%, rgba(0,0,0,0.4) 100%);
-            background-size: 4px 4px, 7px 7px, 100% 100%;
-            background-position: 0 0, 2px 2px, 0 0;
+            background-image: none;
         }
 
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -243,6 +233,46 @@
         /* Modal animations */
         .modal-bg { animation: fadeIn 0.2s ease; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* ===== ECUACIÓN TRANSCRITA — destaca en cada tema ===== */
+        .ecuacion-transcrita {
+            font-weight: 700;
+            padding: 1rem 2rem;
+            border-radius: 1rem;
+            display: inline-block;
+            overflow-x: auto;
+            max-width: 100%;
+        }
+        .ecuacion-transcrita .katex {
+            color: inherit !important;
+            font-size: 1.6em !important;
+        }
+        .ecuacion-transcrita .katex * {
+            color: inherit !important;
+        }
+        html[data-theme="light"] .ecuacion-transcrita {
+            background: linear-gradient(135deg, #eef2ff 0%, #ddd6fe 100%);
+            color: #4338ca;
+            border: 3px solid #6366f1;
+            box-shadow: 0 4px 14px rgba(99,102,241,0.25);
+        }
+        html[data-theme="chalk-green"] .ecuacion-transcrita {
+            background: rgba(0,0,0,0.35);
+            color: #fde047;
+            border: 3px solid #fde047;
+            box-shadow: 0 4px 18px rgba(253,224,71,0.35);
+        }
+        html[data-theme="chalk-black"] .ecuacion-transcrita {
+            background: rgba(0,0,0,0.45);
+            color: #67e8f9;
+            border: 3px solid #67e8f9;
+            box-shadow: 0 4px 18px rgba(103,232,249,0.35);
+        }
+        /* Etiqueta "Ejercicio transcrito:" — visible en chalk también */
+        html[data-theme="chalk-green"] .ecuacion-label,
+        html[data-theme="chalk-black"] .ecuacion-label {
+            color: rgba(255,255,255,0.85) !important;
+        }
 
         /* Estilos para vista chalkboard del overlay de solucion */
         html[data-theme="chalk-green"] #solution-overlay,
@@ -300,10 +330,10 @@
             </button>
             <div class="w-px h-6 bg-white/20"></div>
             <a href="https://agenda-school.netlify.app" target="_blank" rel="noopener noreferrer"
-               class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 transition-all font-comic font-bold text-sm shadow-sm border border-white/20"
+               class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 transition-all font-comic font-bold text-sm shadow-sm border border-white/20 shrink-0"
                title="Ir a la agenda escolar (se abre en otra pestaña)">
                 <i data-lucide="calendar-days" class="w-4 h-4"></i>
-                <span class="hidden sm:inline">Agenda</span>
+                <span>Agenda</span>
                 <i data-lucide="external-link" class="w-3 h-3 opacity-70"></i>
             </a>
         </div>
@@ -1557,8 +1587,8 @@
                     </div>
                     ${cambioHtml}
                     <div class="mb-10 text-center">
-                        <p class="text-slate-400 font-comic mb-2 text-lg">Ejercicio transcrito:</p>
-                        <div class="text-indigo-600 font-bold border-b-4 border-indigo-200 pb-4 inline-block px-8 overflow-x-auto">
+                        <p class="ecuacion-label text-slate-500 font-comic mb-3 text-lg">Ejercicio transcrito:</p>
+                        <div class="ecuacion-transcrita">
                             ${renderMath(data.ecuacionTranscrita)}
                         </div>
                     </div>
